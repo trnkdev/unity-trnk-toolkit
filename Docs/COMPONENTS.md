@@ -102,14 +102,14 @@ Configure `Speed`, `Auto Play`, and `Use Unscaled Time` in the inspector.
 
 ### AutoDestroy
 
-Destroys the GameObject after a configurable delay. Fires `OnBeforeDestroy` just before destruction.
+Destroys the GameObject after a configurable delay. Fires an event just before destruction.
 
 ```csharp
 // Inspector: set _destroyAfter (seconds, default 5)
 // Fires event then destroys — no code required for basic use
 
 var ad = GetComponent<AutoDestroy>();
-ad.OnBeforeDestroy.AddListener(() => Debug.Log("Goodbye!"));
+ad.Bind(() => Debug.Log("Goodbye!"));
 ```
 
 ### LookAtCamera

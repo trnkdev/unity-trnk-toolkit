@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace TRnK.Toolkit
 {
-    internal enum DocCategory { Core, Components, Extensions, Services, Utilities, EditorTools, TRnKSignal, TRnKFlow, TRnKSerializer }
+    internal enum DocCategory { Core, Components, Extensions, Utilities, EditorTools, TRnKSignal, TRnKFlow, TRnKSerializer, TRnKTimer }
     internal enum DocMemberKind { Property, Method, Callback }
 
     [Serializable]

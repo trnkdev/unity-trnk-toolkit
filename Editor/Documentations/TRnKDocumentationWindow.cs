@@ -177,7 +177,18 @@ namespace TRnK.Toolkit
 
                 DrawCategoryRow(-1, "★", "All");
                 foreach (DocCategory c in Enum.GetValues(typeof(DocCategory)))
-                    DrawCategoryRow((int)c, GetCatIcon(c), c == DocCategory.EditorTools ? "Editor Tools" : c.ToString());
+                {
+                    string label = c switch
+                    {
+                        DocCategory.EditorTools => "Editor Tools",
+                        DocCategory.TRnKSignal => "TRnK Signal",
+                        DocCategory.TRnKFlow => "TRnK Flow",
+                        DocCategory.TRnKSerializer => "TRnK Serializer",
+                        DocCategory.TRnKTimer => "TRnK Timer",
+                        _ => c.ToString()
+                    };
+                    DrawCategoryRow((int)c, GetCatIcon(c), label);
+                }
 
                 GUILayout.Space(6f);
                 EditorGUILayout.EndScrollView();
@@ -310,8 +321,15 @@ namespace TRnK.Toolkit
             {
                 GUILayout.Space(14f);
                 string title = _selCat == -1 ? "All"
-                    : _selCat == (int)DocCategory.EditorTools ? "Editor Tools"
-                    : ((DocCategory)_selCat).ToString();
+                    : ((DocCategory)_selCat) switch
+                    {
+                        DocCategory.EditorTools => "Editor Tools",
+                        DocCategory.TRnKSignal => "TRnK Signal",
+                        DocCategory.TRnKFlow => "TRnK Flow",
+                        DocCategory.TRnKSerializer => "TRnK Serializer",
+                        DocCategory.TRnKTimer => "TRnK Timer",
+                        var c => c.ToString()
+                    };
                 GUILayout.Label(title, _styleHeaderTitle,
                     GUILayout.Height(40f), GUILayout.ExpandWidth(false));
                 GUILayout.FlexibleSpace();
@@ -375,7 +393,15 @@ namespace TRnK.Toolkit
                 {
                     var group = entries.FindAll(e => e.Category == cat);
                     if (group.Count == 0) continue;
-                    string catLabel = cat == DocCategory.EditorTools ? "Editor Tools" : cat.ToString();
+                    string catLabel = cat switch
+                    {
+                        DocCategory.EditorTools => "Editor Tools",
+                        DocCategory.TRnKSignal => "TRnK Signal",
+                        DocCategory.TRnKFlow => "TRnK Flow",
+                        DocCategory.TRnKSerializer => "TRnK Serializer",
+                        DocCategory.TRnKTimer => "TRnK Timer",
+                        _ => cat.ToString()
+                    };
                     DrawGroupHeader(GetCatIcon(cat) + "  " + catLabel);
                     foreach (var e in group)
                         DrawEntryCard(e);
@@ -389,7 +415,15 @@ namespace TRnK.Toolkit
                 {
                     if (_selCat == -1 && e.Category != prevCat)
                     {
-                        string catLabel = e.Category == DocCategory.EditorTools ? "Editor Tools" : e.Category.ToString();
+                        string catLabel = e.Category switch
+                        {
+                            DocCategory.EditorTools => "Editor Tools",
+                            DocCategory.TRnKSignal => "TRnK Signal",
+                            DocCategory.TRnKFlow => "TRnK Flow",
+                            DocCategory.TRnKSerializer => "TRnK Serializer",
+                            DocCategory.TRnKTimer => "TRnK Timer",
+                            _ => e.Category.ToString()
+                        };
                         DrawGroupHeader(GetCatIcon(e.Category) + "  " + catLabel);
                         prevCat = e.Category;
                     }
@@ -1127,12 +1161,12 @@ namespace TRnK.Toolkit
             DocCategory.Core => "⚙",
             DocCategory.Components => "◈",
             DocCategory.Extensions => "⊕",
-            DocCategory.Services => "◎",
             DocCategory.Utilities => "⊞",
             DocCategory.EditorTools => "◧",
             DocCategory.TRnKSignal => "◯",
             DocCategory.TRnKFlow => "↻",
             DocCategory.TRnKSerializer => "≡",
+            DocCategory.TRnKTimer => "⏱",
             _ => "•"
         };
 

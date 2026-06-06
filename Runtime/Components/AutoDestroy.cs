@@ -1,4 +1,3 @@
-using TRnK.Timer;
 using UnityEngine;
 using UnityEngine.Events;
 
@@ -13,16 +12,21 @@ namespace TRnK.Components
 
         [SerializeField, Space(6), Tooltip("Event triggered just before destruction")]
         private UnityEvent _onBeforeDestroy;
-        public UnityEvent OnBeforeDestroy => _onBeforeDestroy;
 
         private void Start()
         {
-            this.Delay(_destroyAfter, OnDestroyAfterDelay);
+            Invoke(nameof(DestroyNow), _destroyAfter);
         }
 
-        private void OnDestroyAfterDelay()
+        /// <summary> Binds a callback to be invoked just before the object is destroyed. </summary>
+        public void Bind(UnityAction action)
         {
-            _onBeforeDestroy?.Invoke();
+            _onBeforeDestroy.AddListener(action);
+        }
+
+        private void DestroyNow()
+        {
+            _onBeforeDestroy.Invoke();
             Destroy(gameObject);
         }
     }

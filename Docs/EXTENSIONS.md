@@ -59,13 +59,12 @@ GameObject[] allEnemies = transform.GetChildrenInLayerRecursive(LayerMask.GetMas
 ### AnimatorExtensions
 
 ```csharp
-// Animation length queries — hash overload expects a CLIP-name hash (Animator.StringToHash(clipName))
+// Clip length query by name (returns 0f if not found)
 float clipLength = animator.GetAnimationLength("JumpAnimation");
-float hashLength = animator.GetAnimationLength(Animator.StringToHash("JumpAnimation"));
 
-// Animation state checks — hash overload expects a STATE-name hash (shortNameHash)
+// Current state checks — string uses IsName(); int matches shortNameHash
 bool isJumping = animator.IsPlayingAnimation("JumpAnimation");
-bool isPlaying = animator.IsPlayingAnimation(jumpStateHash);
+bool isPlaying = animator.IsPlayingAnimation(jumpStateHash, layerIndex: 1);
 ```
 
 ### CameraExtensions
@@ -246,8 +245,8 @@ using TRnK.Logger;
 T randomItem = array.Rand();
 int randomIndex = array.RandIndex();
 T[] shuffled = array.Shuffle();
-T[] swapped = array.SwapAt(0, 1);
-T[] swappedByElement = array.Swap(item1, item2);
+array.SwapAt(0, 1);             // in-place, void
+array.Swap(item1, item2);      // in-place, void
 bool isEmpty = array.IsNullOrEmpty();
 bool hasNulls = array.ContainsNull();
 string formatted = array.ToLiteral(); // "[item1, item2, item3]"
@@ -261,7 +260,7 @@ bool contains = array.Contains(item);
 T randomItem = list.Rand();
 int randomIndex = list.RandIndex();
 List<T> shuffled = list.Shuffle();
-List<T> swapped = list.SwapAt(0, 1);
+list.SwapAt(0, 1);              // in-place, void
 bool hasNulls = list.ContainsNull();
 string formatted = list.ToLiteral(); // "{item1, item2, item3}"
 List<T> multiple = list.RandMultiple(3);
@@ -282,39 +281,25 @@ string setFormatted = hashSet.ToLiteral();
 ### TimeExtensions
 
 ```csharp
-// Clock string formatting (float/double/int overloads; useCeiling = true by default)
-string clock = 3661f.ToClock();          // "01:01:01"
+// Clock string formatting (float/double/int overloads; useCeiling = true by default for float/double)
+string clock = 3661f.ToClock();                      // "01:01:01"
 string clockFloor = 3661f.ToClock(useCeiling: false);
-string short1 = 125f.ToShortClock();     // "02:05"
-string short2 = 125.ToShortClock();      // int overload, no ceiling param
+string short1 = 125f.ToShortClock();                 // "02:05"
+string short2 = 125.ToShortClock();                  // int overload
 
-// Readable duration (TimeSpan / double / float / int overloads)
-string readable = 93784f.ToReadableFormat();              // "1d 2h 3m" (spacing by default)
-string noSpace = 93784f.ToReadableFormat(useSpacing: false); // "1d2h3m"
-string fromSpan = TimeSpan.FromSeconds(93784).ToReadableFormat(); // no spacing by default
+// Readable duration (float/double/int/TimeSpan overloads)
+string readable  = 93784f.ToReadableFormat();                        // "1d 2h 3m"
+string noSpace   = 93784f.ToReadableFormat(useSpacing: false);       // "1d2h3m"
+string fromSpan  = TimeSpan.FromSeconds(93784).ToReadableFormat();   // "1d 2h 3m"
 
-// DateTime elapsed time (past → now, uses TimeService.Now)
-DateTime past = TimeService.Now.AddHours(-2);
-TimeSpan elapsed = past.TimeSince();          // TimeSpan
-double seconds = past.SecondsSince();         // seconds as double
-double minutes = past.MinutesSince();
-double hours = past.HoursSince();
-double days = past.DaysSince();
+// DateTime component replacement (returns new DateTime)
+DateTime midnight = DateTime.UtcNow.WithTime(hour: 0, minute: 0, second: 0);
+DateTime firstDay = DateTime.UtcNow.WithDate(day: 1);
 
-// UTC variants
-TimeSpan utcElapsed = past.TimeSinceUtc();
-double utcHours = past.HoursSinceUtc();
-
-// DateTime time remaining (future → now, uses TimeService.Now)
-DateTime future = TimeService.Now.AddHours(3);
-TimeSpan remaining = future.TimeFromNow();    // TimeSpan
-double secFromNow = future.SecondsFromNow();
-double minFromNow = future.MinutesFromNow();
-double hrsFromNow = future.HoursFromNow();
-double daysFromNow = future.DaysFromNow();
-
-// UTC variants
-double utcSecsFromNow = future.SecondsFromNowUtc();
+// Period boundary checks
+bool isNewDay   = DateTime.UtcNow.IsStartOfDay();
+bool isMonday   = DateTime.UtcNow.IsStartOfWeek(DayOfWeek.Monday);
+bool isFirstDay = DateTime.UtcNow.IsStartOfMonth();
 ```
 
 ### TMPTextExtensions
@@ -364,19 +349,7 @@ Task<Task> firstCompleted = await this.WhenAny(coroutineA, coroutineB, coroutine
 
 ### TimerExtensions
 
-> Requires `using TRnK.Timer;`
-
-```csharp
-
-// Invoke once after a delay; returns a token to cancel before it fires
-TimerToken token = this.Delay(2f, () => Log.Info("Delayed"));
-TimerToken unscaled = this.Delay(2f, () => Log.Info("Unscaled"), useUnscaledTime: true);
-token.Cancel(); // cancels before it fires — silent, no callbacks
-
-// Repeat every interval; returns a token to stop the loop
-TimerToken ticker = this.Repeat(1f, () => Log.Info("Tick"));
-ticker.Cancel();
-```
+> `TimerExtensions` is part of the **TRnK Timer** package (`com.trnkdev.unitytimer`) — not Toolkit. See the [TRnK Timer README](../../TRnK Timer/README.md) for the full API.
 
 ### TaskExtensions
 
@@ -412,27 +385,30 @@ string selective = "Hello World".Colorize(Color.red, "Hello");
 string chars = "Hello!".Colorize(Color.blue, '!');
 string multiple = "Red and Blue".Colorize(Color.red, "Red", "Blue");
 
-// Conditional colorization
-string conditional = "Error".Colorize(Color.red, () => hasError);
-string predicate = "Some words".Colorize(Color.green, word => word.Length > 4);
+// Conditional colorization (predicate receives each word)
+string predicate = "Some words here".Colorize(Color.green, word => word.Length > 4);
 ```
 
 ### TextFormatExtensions
 
 ```csharp
-// Bold formatting
-string bold = "Important".Bold(); // "<b>Important</b>"
+// Bold — whole string, word, words, predicate, or char
+string bold = "Important".Bold();
 string selective = "This is important".Bold("important");
 
-// Italic formatting
-string italic = "Emphasis".Italic(); // "<i>Emphasis</i>"
+// Italic — same overloads
+string italic = "Emphasis".Italic();
 
-// Size formatting
-string sized = "Big Text".Size(24f); // "<size=24>Big Text</size>"
+// Underline — same overloads
+string underline = "Click here".Underline("here");
+
+// Size — whole string, word, words, or predicate (throws if size <= 0)
+string sized = "Big Text".Size(24f);
 
 // Chaining
 string formatted = "Important Warning"
     .Bold("Important")
     .Italic("Warning")
+    .Underline("Warning")
     .Size(18f, "Warning");
 ```

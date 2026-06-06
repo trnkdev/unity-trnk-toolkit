@@ -101,7 +101,7 @@ countdown.ReduceTime(2f);
 bool  alive = countdown.IsAlive;
 float left  = countdown.RemainingTime;",
                     Tags = new[] { "Timer", "PlayerLoop", "Countdown" },
-                    Category = DocCategory.Core,
+                    Category = DocCategory.TRnKTimer,
                     Members = new[]
                     {
                         // Properties
@@ -318,7 +318,7 @@ stopwatch.Start();
 
 float elapsed = stopwatch.ElapsedTime;",
                     Tags = new[] { "Timer", "Stopwatch", "Elapsed" },
-                    Category = DocCategory.Core,
+                    Category = DocCategory.TRnKTimer,
                     Members = new[]
                     {
                         // Properties
@@ -469,7 +469,7 @@ token.Cancel();   // cancel before it fires — no callbacks
 TimerToken ticker = this.Repeat(1f, () => Debug.Log(""Tick""));
 ticker.Cancel();  // stop the loop",
                     Tags = new[] { "Timer", "Invoke", "Repeat" },
-                    Category = DocCategory.Core,
+                    Category = DocCategory.TRnKTimer,
                     Members = new[]
                     {
                         new DocMember
@@ -647,6 +647,54 @@ bullet.transform.SetPositionAndRotation(firePoint.position, firePoint.rotation);
     Release();
 }"
                         },
+                    }
+                },
+                new TRnKDocEntry
+                {
+                    Title = "PoolableParticle",
+                    Namespace = "TRnK.Pooling",
+                    Summary = "Inherit to make a ParticleSystem poolable. Auto-releases back to pool when the particle stops.",
+                    Description = "Requires a ParticleSystem on the same GameObject. The stop action is forced to Callback and playOnAwake is disabled automatically. Override OnParticleSystemStopped() for custom teardown logic. Call Play() to start playback.",
+                    Code =
+@"public sealed class HitEffect : PoolableParticle { }
+
+// Usage — call Play() after Get() from the pool
+var effect = _hitPool.Get(hit.point, Quaternion.identity);
+effect.Play();
+// Auto-releases when the particle system stops",
+                    Tags = new[] { "Pool", "Particle", "VFX" },
+                    Category = DocCategory.Core,
+                    Members = new[]
+                    {
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Play()",
+                            Summary = "Starts playback if the particle system is not already playing.",
+                            Code =
+@"var effect = _explosionPool.Get(transform.position, Quaternion.identity);
+effect.Play();" },
+                    }
+                },
+                new TRnKDocEntry
+                {
+                    Title = "ReleaseAfterLifetime",
+                    Namespace = "TRnK.Pooling",
+                    Summary = "Add to any poolable GameObject to auto-release it after a fixed duration. Configurable in the inspector.",
+                    Description = "Requires a PoolableObject on the same GameObject. Lifetime is reset on each OnEnable (i.e. each pool Get()). Supports scaled and unscaled time. Values <= 0 release on the next Update after activation.",
+                    Code =
+@"// Inspector-only setup is the common case.
+// Override at runtime when needed:
+var ral = bullet.GetComponent<ReleaseAfterLifetime>();
+ral.Lifetime = 2.5f;
+ral.UseUnscaledTime = false;",
+                    Tags = new[] { "Pool", "Lifetime", "Auto-release" },
+                    Category = DocCategory.Core,
+                    Members = new[]
+                    {
+                        new DocMember { Kind = DocMemberKind.Property, Signature = "Lifetime",
+                            Summary = "Duration in seconds before the object is released. Clamped to >= 0. Reset on each OnEnable.",
+                            Code = @"ral.Lifetime = 3f;" },
+                        new DocMember { Kind = DocMemberKind.Property, Signature = "UseUnscaledTime",
+                            Summary = "When true, the lifetime ticks with unscaled time — unaffected by Time.timeScale.",
+                            Code = @"ral.UseUnscaledTime = true; // survives pause" },
                     }
                 },
                 new TRnKDocEntry
@@ -901,7 +949,7 @@ anim.GoToFrame(0);" },
                 },
                 new TRnKDocEntry
                 {
-                    Title = "ScrollingBackground variants",
+                    Title = "ScrollingBackground",
                     Namespace = "TRnK.Components",
                     Summary = "Continuously scrolls a texture offset for parallax/looping background effects. Four renderer variants.",
                     Description = "Variants: ScrollingSpriteRenderer, ScrollingImage, ScrollingRawImage (scrolls uvRect, no material copy), ScrollingMeshRenderer. All share the same API. Configure Speed, Auto Play, and Use Unscaled Time in the inspector.",
@@ -952,23 +1000,24 @@ scroller.SetSpeedY(0f);    // stop vertical" },
                 {
                     Title = "AutoDestroy",
                     Namespace = "TRnK.Components",
-                    Summary = "Destroys the GameObject after a configurable delay. Fires OnBeforeDestroy just before destruction.",
-                    Description = "Set _destroyAfter (seconds, default 5) in the inspector. Subscribe to OnBeforeDestroy for cleanup. No code required for basic use.",
+                    Summary = "Destroys the GameObject after a configurable delay. Optionally fires a callback just before destruction.",
+                    Description = "Set _destroyAfter (seconds, default 5) in the inspector. Wire the UnityEvent in the inspector, or call Bind() in code to subscribe a runtime callback.",
                     Code =
-@"var ad = GetComponent<AutoDestroy>();
-ad.OnBeforeDestroy.AddListener(() => Debug.Log(""Goodbye!""));",
+@"// Wire the event in the inspector, or bind at runtime:
+var ad = GetComponent<AutoDestroy>();
+ad.Bind(() => Debug.Log(""Goodbye!""));",
                     Tags = new[] { "Lifecycle", "Destroy" },
                     Category = DocCategory.Components,
                     Members = new[]
                     {
                         new DocMember
                         {
-                            Kind = DocMemberKind.Callback,
-                            Signature = "OnBeforeDestroy",
-                            Summary = "UnityEvent fired one frame before the GameObject is destroyed. Use for cleanup or visual effects.",
+                            Kind = DocMemberKind.Method,
+                            Signature = "Bind(UnityAction action)",
+                            Summary = "Adds a runtime callback to be invoked just before the GameObject is destroyed.",
                             Code =
 @"var ad = GetComponent<AutoDestroy>();
-ad.OnBeforeDestroy.AddListener(() =>
+ad.Bind(() =>
 {
     particleSystem.Stop();
     AudioManager.Instance.PlayOneShot(destroyClip);
@@ -1008,13 +1057,10 @@ ad.OnBeforeDestroy.AddListener(() =>
                 {
                     Title = "GameObjectExtensions",
                     Namespace = "TRnK.Extensions",
-                    Summary = "GetOrAdd<T>, active-state helpers, layer management, child queries.",
-                    Description = "GetOrAdd<T> avoids repeated GetComponent + AddComponent boilerplate. SetActive()/SetInactive() improve intent clarity. ClearChildTransforms() destroys all children. GetChildrenInLayer/Recursive filter by LayerMask.",
+                    Summary = "GetOrAdd<T>, layer management, child queries.",
+                    Description = "GetOrAdd<T> avoids repeated GetComponent + AddComponent boilerplate. ClearChildTransforms() destroys all children. GetChildrenInLayer/Recursive filter by LayerMask.",
                     Code =
 @"AudioSource audio = gameObject.GetOrAdd<AudioSource>();
-
-mono.SetActive();
-mono.SetInactive();
 
 bool inLayer = gameObject.IsInLayer(LayerMask.GetMask(""Enemy""));
 gameObject.SetLayer(""Player"");
@@ -1031,10 +1077,6 @@ GameObject[] enemies =
                         new DocMember { Kind = DocMemberKind.Method, Signature = "GetOrAdd<T>()",
                             Summary = "Returns the component if it exists, otherwise adds and returns a new one.",
                             Code = @"var rb = gameObject.GetOrAdd<Rigidbody2D>();" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetActive() / SetInactive()",
-                            Summary = "Readable shorthands for SetActive(true) and SetActive(false).",
-                            Code = @"enemy.SetInactive();   // same as enemy.SetActive(false)
-player.SetActive();" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "IsInLayer(LayerMask mask)",
                             Summary = "Returns true if the GameObject's layer is included in the LayerMask.",
                             Code =
@@ -1048,12 +1090,12 @@ gameObject.SetLayer(2);" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "ClearChildTransforms()",
                             Summary = "Destroys all immediate child GameObjects.",
                             Code = @"contentContainer.ClearChildTransforms(); // clear spawned list items" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetChildrenInLayer(LayerMask mask)",
-                            Summary = "Returns immediate children whose layer matches the given LayerMask.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetChildrenInLayer(LayerMask mask, bool includeInactive = false)",
+                            Summary = "Returns immediate children whose layer matches the given LayerMask. Pass includeInactive: true to include disabled objects.",
                             Code = @"GameObject[] walls = room.GetChildrenInLayer(LayerMask.GetMask(""Wall""));" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetChildrenInLayerRecursive(LayerMask mask)",
-                            Summary = "Returns all descendants (any depth) whose layer matches the LayerMask.",
-                            Code = @"GameObject[] all = root.GetChildrenInLayerRecursive(LayerMask.GetMask(""Enemy""));" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetChildrenInLayerRecursive(LayerMask mask, bool includeInactive = false)",
+                            Summary = "Returns all descendants (any depth) whose layer matches the LayerMask. Pass includeInactive: true to include disabled objects.",
+                            Code = @"GameObject[] all = root.GetChildrenInLayerRecursive(LayerMask.GetMask(""Enemy""), includeInactive: true);" },
                     }
                 },
                 new TRnKDocEntry
@@ -1244,35 +1286,49 @@ rb.velocity = dir * speed;" },
                 {
                     Title = "StringExtensions",
                     Namespace = "TRnK.Extensions",
-                    Summary = "Comma-float parsing, SplitCamelCase, percent formatting, enum conversion.",
-                    Description = "Parsing/format helpers for strings and primitive values. Number-display formatting lives in BigNumberFormatExtensions.",
+                    Summary = "Comma-float parsing, SplitCamelCase, WithoutSpaces, percent formatting, enum conversion.",
+                    Description = "Parsing/format helpers for strings and primitive values. Number-display formatting lives in BigNumberFormatExtensions. AsPercent/AsExactPercent live on float, not string.",
                     Code =
 @"float  val   = ""3,14"".ParseFloatWithComma();    // 3.14f
+bool   ok    = ""3,14"".TryParseFloatWithComma(out float v);
 string split = ""MyVarName"".SplitCamelCase();    // ""My Var Name""
+string clean = ""hello world"".WithoutSpaces();   // ""helloworld""
 
 string pct   = 0.25f.AsPercent();                 // ""25%""
 string exact = 25f.AsExactPercent();              // ""25%""
 
-MyEnum e = ""EnumValue"".ToEnum<MyEnum>();",
+MyEnum e  = ""EnumValue"".ToEnum<MyEnum>();
+MyEnum e2 = ""bad"".ToEnumOrDefault(MyEnum.Default);",
                     Tags = new[] { "String", "Format" },
                     Category = DocCategory.Extensions,
                     Members = new[]
                     {
                         new DocMember { Kind = DocMemberKind.Method, Signature = "ParseFloatWithComma()",
-                            Summary = "Parses a float string that uses a comma as the decimal separator (e.g. European locale).",
+                            Summary = "Parses a float string that uses a comma as the decimal separator. Throws on failure.",
                             Code = @"float f = ""3,14"".ParseFloatWithComma(); // 3.14f" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "TryParseFloatWithComma(out float result)",
+                            Summary = "Non-throwing variant of ParseFloatWithComma. Returns false on parse failure.",
+                            Code =
+@"if (input.TryParseFloatWithComma(out float f))
+    ApplyValue(f);" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "SplitCamelCase()",
                             Summary = "Inserts spaces before capital letters. Useful for displaying field names as labels.",
                             Code = @"string label = nameof(playerHealth).SplitCamelCase(); // ""Player Health""" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsPercent()  (float ext)",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "WithoutSpaces()",
+                            Summary = "Removes all spaces from the string. Null-safe — returns empty string for null/empty input.",
+                            Code = @"string key = displayName.WithoutSpaces(); // ""PlayerOne""" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsPercent(int decimalPlaces = 0)  (float ext)",
                             Summary = "Multiplies the float by 100 and appends %. 0.25f → \"25%\".",
                             Code = @"winRateLabel.text = winRate.AsPercent(); // ""72%""" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsExactPercent()  (float ext)",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsExactPercent(int decimalPlaces = 0)  (float ext)",
                             Summary = "Appends % to the value as-is, without multiplying. 25f → \"25%\".",
                             Code = @"label.text = healthPercent.AsExactPercent();" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "ToEnum<T>()",
-                            Summary = "Parses the string as an enum value of type T.",
+                            Summary = "Parses the string as an enum value of type T. Throws if the value is not defined.",
                             Code = @"WeaponType wt = ""Sword"".ToEnum<WeaponType>();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToEnumOrDefault<T>(T defaultValue = default)",
+                            Summary = "Parses the string as enum T. Returns defaultValue (with a warning) if parsing fails or input is null/empty.",
+                            Code = @"MyEnum e = userInput.ToEnumOrDefault(MyEnum.None);" },
                     }
                 },
                 new TRnKDocEntry
@@ -1347,10 +1403,10 @@ foreach (var card in deck) Deal(card);" },
                             Code =
 @"Enemy e = spawnTable.RandWeighted(x => x.spawnWeight);" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "SwapAt(int aIndex, int bIndex) / Swap(T a, T b)",
-                            Summary = "Returns a new array/list with two elements swapped by index (SwapAt) or by value (Swap).",
+                            Summary = "Swaps two elements in-place (void). SwapAt uses indices; Swap uses values (first occurrence).",
                             Code =
-@"int[] sorted = order.SwapAt(0, 2);   // by index
-string[] s  = names.Swap(""Alice"", ""Bob""); // by value" },
+@"order.SwapAt(0, 2);        // by index, in-place
+names.Swap(""Alice"", ""Bob""); // by value, in-place" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "Slice(int startIndex, int length)",
                             Summary = "Returns a sub-array from startIndex with the given length.",
                             Code = @"T[] page = allItems.Slice(pageIndex * 10, 10);" },
@@ -1378,127 +1434,220 @@ string val = dialogueMap.RandV();" },
                 {
                     Title = "NumberExtensions",
                     Namespace = "TRnK.Extensions",
-                    Summary = "PercentageOf, IsSuccessfulRoll probability, ToEnum.",
-                    Description = "IsSuccessfulRoll(float) treats the value as a 0–1 probability. The int overload takes a max parameter.",
+                    Summary = "PercentageOf, IsSuccessfulRoll probability, ToEnum, ToEnumOrDefault.",
+                    Description = "IsSuccessfulRoll(float) uses a [min, max] range (default 0–1). The int overload compares against [min, max) via Random.Range. Both throw ArgumentException if the value is outside the range.",
                     Code =
 @"float pct  = current.PercentageOf(total);
 
-bool hit  = 0.75f.IsSuccessfulRoll();      // 75% chance
-bool hit2 = 25.IsSuccessfulRoll(0, 100);   // 25 out of 100
+bool hit  = 0.75f.IsSuccessfulRoll();           // 75% chance (range 0–1)
+bool hit2 = 25.IsSuccessfulRoll(0, 100);        // 25 out of [0, 100)
 
-MyEnum e = 1.ToEnum<MyEnum>();",
+MyEnum e  = 1.ToEnum<MyEnum>();
+MyEnum e2 = 99.ToEnumOrDefault(MyEnum.None);",
                     Tags = new[] { "Number", "Math", "Random" },
                     Category = DocCategory.Extensions,
                     Members = new[]
                     {
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "PercentageOf(float total)",
-                            Summary = "Returns this value as a 0–1 fraction of total.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "PercentageOf(float total) / PercentageOf(int total)",
+                            Summary = "Returns this value as a 0–1 fraction of total. Returns 0 if total is 0.",
                             Code =
 @"float fill = currentHealth.PercentageOf(maxHealth);
 healthBar.fillAmount = fill;" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsSuccessfulRoll()  (float)",
-                            Summary = "Treats the value as a 0–1 probability and returns true with that chance.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsSuccessfulRoll(float min = 0f, float max = 1f)  (float)",
+                            Summary = "Returns true with probability equal to the value within [min, max]. Boundary-exact: value <= min is always false, value >= max is always true.",
                             Code =
-@"// 30% chance to drop loot
-if (0.30f.IsSuccessfulRoll())
-    SpawnLoot();" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsSuccessfulRoll(int min, int max)  (int ext)",
-                            Summary = "Returns true if a random int in [min, max) is less than the value.",
+@"if (0.30f.IsSuccessfulRoll()) SpawnLoot();        // 30% chance
+if (0.75f.IsSuccessfulRoll(0f, 1f)) CriticalHit(); // 75% chance" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsSuccessfulRoll(int min = 0, int max = 100)  (int)",
+                            Summary = "Returns true if Random.Range(min, max) < value. Uses [min, max) semantics: value == max is always true, value == min is always false.",
                             Code = @"if (25.IsSuccessfulRoll(0, 100)) TriggerCriticalHit(); // 25% chance" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "ToEnum<T>()",
-                            Summary = "Converts the integer to the enum of type T.",
+                            Summary = "Converts the integer to enum T. Throws ArgumentException if the value is not a defined member.",
                             Code = @"GameState state = savedValue.ToEnum<GameState>();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToEnumOrDefault<T>(T defaultValue = default)",
+                            Summary = "Converts the integer to enum T, returning defaultValue (with a warning log) if not defined.",
+                            Code = @"MyEnum e = rawInt.ToEnumOrDefault(MyEnum.None);" },
                     }
                 },
                 new TRnKDocEntry
                 {
                     Title = "TimeExtensions",
                     Namespace = "TRnK.Extensions",
-                    Summary = "ToClock, ToShortClock, ToReadableFormat, and DateTime elapsed/remaining helpers.",
-                    Description = "ToClock formats seconds as HH:MM:SS. ToShortClock gives MM:SS. ToReadableFormat produces \"1d 2h 3m\" style strings. DateTime helpers use TimeService.Now for server-synced results.",
+                    Summary = "ToClock, ToShortClock, ToReadableFormat (float/double/int/TimeSpan), WithDate, WithTime, and period-check helpers.",
+                    Description = "All formatting methods have float, double, int, and TimeSpan overloads. Float/double overloads accept useCeiling (default true). ToReadableFormat omits zero units and auto-selects granularity. WithDate/WithTime produce new DateTimes with modified components. IsStartOfDay/Week/Month are period-boundary checks.",
                     Code =
-@"string clock = 3661f.ToClock();            // ""01:01:01""
-string sh    = 125f.ToShortClock();        // ""02:05""
-string rdbl  = 93784f.ToReadableFormat(); // ""1d 2h 3m""
+@"string clock = 3661f.ToClock();                    // ""01:01:01""
+string sh    = 125f.ToShortClock();                // ""02:05""
+string rdbl  = 93784f.ToReadableFormat();          // ""1d2h3m""
+string spaced = 93784f.ToReadableFormat(useSpacing: true); // ""1d 2h 3m""
 
-DateTime past    = TimeService.Now.AddHours(-2);
-TimeSpan elapsed = past.TimeSince();
-double   secs    = past.SecondsSince();
+// TimeSpan overload
+string ts = TimeSpan.FromHours(2.5).ToReadableFormat(); // ""2h30m""
 
-DateTime future = TimeService.Now.AddHours(3);
-double   left   = future.SecondsFromNow();",
-                    Tags = new[] { "Time", "Format", "Clock" },
+// DateTime helpers
+DateTime dt = DateTime.UtcNow.WithTime(hour: 0, minute: 0, second: 0);
+bool isMonday = DateTime.UtcNow.IsStartOfWeek(DayOfWeek.Monday);",
+                    Tags = new[] { "Time", "Format", "Clock", "DateTime" },
                     Category = DocCategory.Extensions,
                     Members = new[]
                     {
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToClock()  (float ext)",
-                            Summary = "Formats a float of seconds as HH:MM:SS.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToClock(bool useCeiling = true)  (float / double / int ext)",
+                            Summary = "Formats seconds as HH:MM:SS. Rounds up by default for float/double.",
                             Code = @"timerLabel.text = remainingSeconds.ToClock(); // ""01:30:00""" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToShortClock()  (float ext)",
-                            Summary = "Formats a float of seconds as MM:SS.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToShortClock(bool useCeiling = true)  (float / double / int ext)",
+                            Summary = "Formats seconds as MM:SS. Rounds up by default for float/double.",
                             Code = @"timerLabel.text = remainingSeconds.ToShortClock(); // ""02:45""" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToReadableFormat()  (float ext)",
-                            Summary = "Formats seconds into a human-readable \"1d 2h 3m 4s\" string, omitting zero units.",
-                            Code = @"cooldownLabel.text = totalSeconds.ToReadableFormat(); // ""3h 20m""" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "TimeSince()  (DateTime ext)",
-                            Summary = "Returns the TimeSpan elapsed since the given DateTime.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToReadableFormat(bool useSpacing = true, bool useCeiling = true)  (float / double / int / TimeSpan ext)",
+                            Summary = "Formats duration into \"1d 2h 3m\" style, omitting zero units. useSpacing adds spaces between units.",
                             Code =
-@"var lastLogin = DateTime.Parse(PlayerPrefs.GetString(""LastLogin""));
-TimeSpan offline = lastLogin.TimeSince();" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "SecondsSince()  (DateTime ext)",
-                            Summary = "Returns the total seconds elapsed since the given DateTime as a double.",
-                            Code = @"double secs = lastEventTime.SecondsSince();" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "SecondsFromNow()  (DateTime ext)",
-                            Summary = "Returns the total seconds from now until the given future DateTime.",
+@"cooldownLabel.text = timeLeft.ToReadableFormat();           // ""3h 20m""
+cooldownLabel.text = timeLeft.ToReadableFormat(false);      // ""3h20m""
+cooldownLabel.text = TimeSpan.FromMinutes(90).ToReadableFormat(); // ""1h 30m""" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "WithDate(int? year, int? month, int? day)  (DateTime ext)",
+                            Summary = "Returns a new DateTime with modified date components. Day clamps to the new month's max.",
                             Code =
-@"DateTime resetTime = TimeService.Today.AddDays(1);
-double secs = resetTime.SecondsFromNow();
-countdownLabel.text = ((float)secs).ToClock();" },
+@"DateTime firstOfMonth = DateTime.UtcNow.WithDate(day: 1);
+DateTime nextYear = DateTime.UtcNow.WithDate(year: DateTime.UtcNow.Year + 1);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "WithTime(int? hour, int? minute, int? second, int? millisecond)  (DateTime ext)",
+                            Summary = "Returns a new DateTime with modified time components.",
+                            Code =
+@"DateTime midnight = DateTime.UtcNow.WithTime(hour: 0, minute: 0, second: 0);
+DateTime noon     = DateTime.UtcNow.WithTime(hour: 12);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsStartOfDay()  (DateTime ext)",
+                            Summary = "Returns true when the DateTime's time-of-day is exactly 00:00:00.",
+                            Code = @"if (serverTime.IsStartOfDay()) ResetDailyQuests();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsStartOfWeek(DayOfWeek firstDay = Monday)  (DateTime ext)",
+                            Summary = "Returns true when the DateTime falls on the first day of the week at 00:00:00.",
+                            Code = @"if (serverTime.IsStartOfWeek()) ResetWeeklyRewards();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsStartOfMonth()  (DateTime ext)",
+                            Summary = "Returns true when the DateTime is the 1st day of the month at 00:00:00.",
+                            Code = @"if (serverTime.IsStartOfMonth()) ResetMonthlyLeaderboard();" },
                     }
                 },
                 new TRnKDocEntry
                 {
-                    Title = "TextColorize / TextFormat Extensions",
+                    Title = "TMPTextExtensions",
                     Namespace = "TRnK.Extensions",
-                    Summary = "Rich-text helpers: Colorize (whole, selective, conditional), Bold, Italic, Size — all chainable.",
-                    Description = "Colorize injects Unity rich-text color tags. Selective overloads target specific substrings or chars. Conditional overloads take a predicate. Bold/Italic/Size support selective targeting and can be chained.",
+                    Summary = "TMP_Text helpers: SetClock, SetShortClock, SetReadableTime — zero-alloc via TMP's SetText.",
+                    Description = "All methods use TMP_Text.SetText() internally — no string allocations. Float overloads accept a useCeiling parameter (default true) to control rounding. SetReadableTime omits zero units and adjusts granularity automatically (e.g. shows 'd h m' when >= 1 day).",
                     Code =
-@"string colored   = ""Hello"".Colorize(Color.red);
-string selective = ""Hello World"".Colorize(Color.red, ""Hello"");
-string cond      = ""Error"".Colorize(Color.red, () => hasError);
+@"timerLabel.SetClock(remainingSeconds);        // ""01:30:00""
+timerLabel.SetShortClock(remainingSeconds);   // ""01:30""
+timerLabel.SetReadableTime(remainingSeconds); // ""1h 30m 0s""
 
-string bold   = ""Important"".Bold();
-string italic = ""Emphasis"".Italic();
-string sized  = ""Big"".Size(24f);
+// Float overloads — ceiling by default
+timerLabel.SetClock(3661.7f);                 // ""01:01:02""
+timerLabel.SetClock(3661.7f, useCeiling: false); // ""01:01:01""",
+                    Tags = new[] { "TMP", "TextMeshPro", "Time", "Format" },
+                    Category = DocCategory.Extensions,
+                    Members = new[]
+                    {
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetClock(int totalSeconds)",
+                            Summary = "Sets TMP_Text to \"HH:MM:SS\" format. Zero-alloc.",
+                            Code = @"timerLabel.SetClock(Mathf.CeilToInt(remaining));" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetClock(float totalSeconds, bool useCeiling = true)",
+                            Summary = "Float overload — rounds up by default. Pass useCeiling: false to floor instead.",
+                            Code =
+@"// Update each frame — no string allocation
+timerLabel.SetClock(countdown.RemainingTime);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetShortClock(int totalSeconds)",
+                            Summary = "Sets TMP_Text to \"MM:SS\" format. Zero-alloc.",
+                            Code = @"timerLabel.SetShortClock(125); // ""02:05""" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetShortClock(float totalSeconds, bool useCeiling = true)",
+                            Summary = "Float overload of SetShortClock.",
+                            Code = @"timerLabel.SetShortClock(countdown.RemainingTime);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetReadableTime(int totalSeconds, bool useSpacing = true)",
+                            Summary = "Sets TMP_Text to a human-readable duration like \"1d 2h 3m\" or \"45m 10s\". Omits zero units. useSpacing controls spaces between units.",
+                            Code =
+@"cooldownLabel.SetReadableTime(93784);          // ""1d 2h 3m""
+cooldownLabel.SetReadableTime(93784, false);   // ""1d2h3m""" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetReadableTime(float totalSeconds, bool useSpacing = true, bool useCeiling = true)",
+                            Summary = "Float overload of SetReadableTime.",
+                            Code = @"cooldownLabel.SetReadableTime(timeLeft);" },
+                    }
+                },
+                new TRnKDocEntry
+                {
+                    Title = "TextColorizeExtensions",
+                    Namespace = "TRnK.Extensions",
+                    Summary = "Unity rich-text color tags: whole string, char, word, words, params variants, predicate, and hex string.",
+                    Description = "All overloads produce Unity rich-text <color> tags. char ext operates on a single character. params string[]/char[] overloads color multiple targets. Func<string,bool> overload colorizes matching words. hex string overload validates with ColorUtility and returns text unchanged on bad input.",
+                    Code =
+@"string s1 = ""Hello"".Colorize(Color.red);              // whole string
+string s2 = 'H'.Colorize(Color.red);                   // char ext
+string s3 = ""Hello World"".Colorize(Color.yellow, ""Hello""); // word
+string s4 = ""Hello World"".Colorize(Color.cyan, 'o');   // char in string
+string s5 = ""a b c"".Colorize(Color.green, ""a"", ""c"");  // params words
+string s6 = ""abc"".Colorize(Color.green, 'a', 'c');     // params chars
+string s7 = ""Error ok"".Colorize(Color.red, w => w == ""Error""); // predicate
+string s8 = ""#FF0000"".Colorize(""#FF0000"");             // hex overload",
+                    Tags = new[] { "RichText", "Color", "Colorize" },
+                    Category = DocCategory.Extensions,
+                    Members = new[]
+                    {
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color)  (string ext)",
+                            Summary = "Wraps the entire string in a Unity rich-text color tag.",
+                            Code = @"debugLabel.text = message.Colorize(Color.yellow);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color)  (char ext)",
+                            Summary = "Wraps a single character in a color tag and returns it as a string.",
+                            Code = @"string tagged = 'A'.Colorize(Color.red);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color, string word)",
+                            Summary = "Colors every word-boundary match of the given word within the string.",
+                            Code = @"string s = ""Error: file not found"".Colorize(Color.red, ""Error"");" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color, char character)",
+                            Summary = "Colors every occurrence of the given character within the string.",
+                            Code = @"string s = ""Hello World"".Colorize(Color.red, 'o');" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color, params string[] words)",
+                            Summary = "Colors every word-boundary match of any of the supplied words.",
+                            Code = @"string s = ""Coin Ring Star"".Colorize(Color.yellow, ""Coin"", ""Star"");" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color, params char[] characters)",
+                            Summary = "Colors every occurrence of any of the supplied characters.",
+                            Code = @"string s = ""abc"".Colorize(Color.cyan, 'a', 'c');" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color, Func<string, bool> predicate)",
+                            Summary = "Colors every word for which the predicate returns true.",
+                            Code = @"string s = msg.Colorize(Color.red, w => w == ""Error"" || w == ""Fatal"");" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(string hexColorCode)  (string ext)",
+                            Summary = "Wraps the string in a color tag using a hex string (#RRGGBB). Returns text unchanged if the hex is invalid.",
+                            Code = @"string s = ""Hello"".Colorize(""#FF4444"");" },
+                    }
+                },
+                new TRnKDocEntry
+                {
+                    Title = "TextFormatExtensions",
+                    Namespace = "TRnK.Extensions",
+                    Summary = "Unity rich-text Bold, Italic, Underline, Size — whole string, word, words, predicate, char overloads.",
+                    Description = "Every method has: no-arg (whole string), string word, params string[] words, Func<string,bool> predicate, and char overloads. Bold/Italic/Underline use word-boundary matching; char overloads use string.Replace. Size overloads throw on non-positive values. All are chainable.",
+                    Code =
+@"string bold      = ""Important"".Bold();
+string italic    = ""Emphasis"".Italic();
+string underline = ""Link"".Underline();
+string sized     = ""Big"".Size(24f);
 
 string result = ""Important Warning""
     .Bold(""Important"")
     .Italic(""Warning"")
+    .Underline(w => w == ""Warning"")
     .Size(18f, ""Warning"");",
-                    Tags = new[] { "RichText", "Color", "Format" },
+                    Tags = new[] { "RichText", "Bold", "Italic", "Underline", "Size", "Format" },
                     Category = DocCategory.Extensions,
                     Members = new[]
                     {
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color)",
-                            Summary = "Wraps the entire string in a Unity rich-text color tag.",
-                            Code = @"debugLabel.text = message.Colorize(Color.yellow);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color, string substring)",
-                            Summary = "Colors only the first occurrence of substring within the string.",
-                            Code = @"string s = ""Error: file not found"".Colorize(Color.red, ""Error"");" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "Colorize(Color color, Func<char, bool> predicate)",
-                            Summary = "Colorizes the whole string only when the predicate returns true.",
-                            Code = @"string s = value.ToString().Colorize(Color.red, () => value < 0);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "Bold()",
-                            Summary = "Wraps the string in a <b> tag. Pass a substring to bold only that part.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Bold() / Bold(string) / Bold(params string[]) / Bold(Func<string,bool>) / Bold(char)",
+                            Summary = "Wraps matches in <b> tags. Char overload uses string.Replace (not word-boundary).",
                             Code =
-@"label.text = $""Score: {""{score}"".Bold()}"";
-label.text = ""Tip: press Space to jump"".Bold(""Space"");" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "Italic()",
-                            Summary = "Wraps the string in an <i> tag. Pass a substring to italicize only that part.",
+@"label.text = ""Press Space"".Bold(""Space"");
+label.text = msg.Bold(w => w == ""ERROR"");" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Italic() / Italic(string) / Italic(params string[]) / Italic(Func<string,bool>) / Italic(char)",
+                            Summary = "Wraps matches in <i> tags. Char overload uses string.Replace.",
                             Code = @"label.text = caption.Italic();" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "Size(int fontSize)",
-                            Summary = "Wraps the string in a <size> tag. Pass a substring to size only that part.",
-                            Code = @"label.text = title.Size(24f);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Underline() / Underline(string) / Underline(params string[]) / Underline(Func<string,bool>) / Underline(char)",
+                            Summary = "Wraps matches in <u> tags. Char overload uses string.Replace.",
+                            Code =
+@"label.text = ""Click here"".Underline(""here"");
+label.text = link.Underline();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Size(float size) / Size(float, string) / Size(float, params string[]) / Size(float, Func<string,bool>)",
+                            Summary = "Wraps matches in <size> tags. Throws ArgumentOutOfRangeException if size <= 0.",
+                            Code = @"label.text = title.Size(28f).Bold();" },
                     }
                 },
                 new TRnKDocEntry
@@ -1537,17 +1686,19 @@ await this.WhenAll(corA, corB, corC);",
                         new DocMember { Kind = DocMemberKind.Method, Signature = "StartCoroutineWhen(IEnumerator coroutine, Func<bool> predicate)",
                             Summary = "Polls the predicate each frame and starts the coroutine once it returns true.",
                             Code = @"this.StartCoroutineWhen(BeginCutscene(), () => assetsLoaded);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsTask(MonoBehaviour owner)",
-                            Summary = "Converts a running Coroutine handle to a Task that completes when the coroutine ends.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsTask(MonoBehaviour owner)  (Coroutine ext)",
+                            Summary = "Converts a running Coroutine handle to a Task that completes when the coroutine ends. Respects destroyCancellationToken.",
                             Code =
 @"Task t = StartCoroutine(MyCoroutine()).AsTask(this);
-await t;
-Debug.Log(""Coroutine done"");" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "WhenAll(params IEnumerator[])",
+await t;" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsTask(MonoBehaviour owner)  (IEnumerator ext)",
+                            Summary = "Converts an IEnumerator directly to a Task without needing StartCoroutine. Propagates exceptions.",
+                            Code = @"await MyCoroutine().AsTask(this);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "WhenAll(params IEnumerator[])  (MonoBehaviour ext)",
                             Summary = "Runs all coroutines in parallel and returns a Task that completes when all finish.",
                             Code = @"await this.WhenAll(LoadAudio(), LoadTextures(), LoadLevel());" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "WhenAny(params IEnumerator[])",
-                            Summary = "Runs all coroutines and returns a Task that completes when the first one finishes.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "WhenAny(params IEnumerator[])  (MonoBehaviour ext)",
+                            Summary = "Runs all coroutines and returns a Task<Task> that completes when the first one finishes.",
                             Code = @"await this.WhenAny(WaitForInput(), TimeoutCoroutine(5f));" },
                     }
                 },
@@ -1587,14 +1738,14 @@ IEnumerator Example()
     yield return FetchServerTimeAsync().AsCoroutine();
     Debug.Log(""Time fetched, continuing..."");
 }" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "new YieldTask(task)",
-                            Summary = "Wraps a Task<T> so you can yield return it and read the result afterward.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "new YieldTask(Task task)",
+                            Summary = "Wraps a non-generic Task as a CustomYieldInstruction. Hold a reference to the original Task to read results — YieldTask has no .Result property.",
                             Code =
 @"IEnumerator Fetch()
 {
-    var task = new YieldTask(DownloadAsync());
-    yield return task;
-    Debug.Log(task.Result);
+    Task<string> t = DownloadAsync();
+    yield return new YieldTask(t);
+    Debug.Log(t.Result); // read result from the original Task
 }" },
                     }
                 },
@@ -1602,29 +1753,27 @@ IEnumerator Example()
                 {
                     Title = "AnimatorExtensions",
                     Namespace = "TRnK.Extensions",
-                    Summary = "Clip length queries and state checks (string + hash overloads).",
-                    Description = "GetAnimationLength's hash overload expects a clip-name hash (Animator.StringToHash(clipName)). IsPlayingAnimation's hash overload expects a state-name hash (shortNameHash). They differ in practice only when a state name and clip name diverge.",
+                    Summary = "Clip length query and current-state checks (string + hash overloads).",
+                    Description = "GetAnimationLength iterates runtimeAnimatorController.animationClips by name and returns 0f if not found or if the controller is null. IsPlayingAnimation has two overloads: string checks the state name via IsName(); int checks shortNameHash directly.",
                     Code =
 @"float len = animator.GetAnimationLength(""Jump"");
-bool  ok  = animator.IsPlayingAnimation(""Jump"");",
+bool  ok  = animator.IsPlayingAnimation(""Jump"");
+bool  ok2 = animator.IsPlayingAnimation(IdleStateHash, layerIndex: 1);",
                     Tags = new[] { "Animator", "Animation" },
                     Category = DocCategory.Extensions,
                     Members = new[]
                     {
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetAnimationLength(string name)",
-                            Summary = "Returns the clip length in seconds for the named clip asset.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetAnimationLength(string animName)",
+                            Summary = "Returns the clip length in seconds by matching the clip asset's name. Returns 0f if not found.",
                             Code =
 @"float attackDur = animator.GetAnimationLength(""Attack"");
-this.Delay(attackDur, OnAttackEnd);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetAnimationLength(int clipNameHash)",
-                            Summary = "Hash overload — pass Animator.StringToHash(clipName). Matches the clip asset's name.",
-                            Code = @"float len = animator.GetAnimationLength(AttackClipHash);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsPlayingAnimation(string name)",
-                            Summary = "Returns true if the animator is currently in the named state.",
+Invoke(nameof(OnAttackEnd), attackDur);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsPlayingAnimation(string animName, int layerIndex = 0)",
+                            Summary = "Returns true if the animator's current state on the given layer matches the name.",
                             Code = @"if (!animator.IsPlayingAnimation(""Idle"")) return;" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsPlayingAnimation(int stateNameHash)",
-                            Summary = "Hash overload — matches shortNameHash (state name), NOT clip name.",
-                            Code = @"if (animator.IsPlayingAnimation(IdleStateHash)) return;" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsPlayingAnimation(int stateNameHash, int layerIndex = 0)",
+                            Summary = "Returns true if the current state's shortNameHash matches the given hash.",
+                            Code = @"if (animator.IsPlayingAnimation(Animator.StringToHash(""Idle""))) return;" },
                     }
                 },
                 new TRnKDocEntry
@@ -1651,9 +1800,9 @@ Vector2 screen = camera.GetScreenSize();",
                             Code =
 @"cam.AddToCullingMask(LayerMask.GetMask(""UI""));
 cam.RemoveFromCullingMask(LayerMask.GetMask(""HUD""));" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsLayerInCullingMask(int layer)",
-                            Summary = "Returns true if the given layer index is visible to this camera.",
-                            Code = @"if (!cam.IsLayerInCullingMask(uiLayer)) cam.AddToCullingMask(1 << uiLayer);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsLayerInCullingMask(LayerMask layerMask)",
+                            Summary = "Returns true if any layer in the LayerMask is currently visible to this camera.",
+                            Code = @"if (!cam.IsLayerInCullingMask(LayerMask.GetMask(""UI""))) cam.AddToCullingMask(LayerMask.GetMask(""UI""));" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "SetCullingMask(LayerMask mask)",
                             Summary = "Replaces the culling mask outright. Pass 0 to render nothing, -1 to render everything.",
                             Code = @"screenshotCam.SetCullingMask(LayerMask.GetMask(""Game""));" },
@@ -1672,20 +1821,153 @@ cam.RemoveFromCullingMask(LayerMask.GetMask(""HUD""));" },
                     }
                 },
 
+                new TRnKDocEntry
+                {
+                    Title = "Vector2Extensions",
+                    Namespace = "TRnK.Extensions",
+                    Summary = "Fluent Vector2 arithmetic (With/Add/Subtract/Multiply/Divide), spatial queries, random point generation.",
+                    Description = "All arithmetic methods accept nullable float components — omit any axis to leave it unchanged. InRangeOf uses sqrMagnitude for performance. RandomPointOnCircle/InDisk/InAnnulus generate uniform distributions. DirectionTo returns zero-vector when source equals target.",
+                    Code =
+@"Vector2 moved  = pos.Add(x: 1f);             // only X
+Vector2 scaled = vel.Multiply(x: 2f, y: 0.5f);
+Vector2 dir    = origin.DirectionTo(target);
+bool    close  = pos.InRangeOf(target, 3f);
+
+Vector2 onRing = origin.RandomPointInAnnulus(1f, 3f);
+Vector2 perp   = dir.Perpendicular();
+Vector2 rot    = dir.Rotate(45f);",
+                    Tags = new[] { "Vector2", "Math", "Spatial" },
+                    Category = DocCategory.Extensions,
+                    Members = new[]
+                    {
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "With(float? x, float? y)",
+                            Summary = "Returns a new Vector2 with the specified components replaced; omit a param to keep that axis unchanged.",
+                            Code = @"Vector2 flat = velocity.With(y: 0f);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Add / Subtract / Multiply / Divide(float? x, float? y)",
+                            Summary = "Fluent per-axis arithmetic. Divide ignores null/zero divisors (leaves axis unchanged).",
+                            Code =
+@"Vector2 a = pos.Add(x: 1f);
+Vector2 b = vel.Multiply(x: 2f, y: 0.5f);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "InRangeOf(Vector2 target, float range)",
+                            Summary = "Returns true when distance to target <= range. Negative range always returns false.",
+                            Code = @"if (pos.InRangeOf(enemy.position, detectionRadius)) Alert();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "WithMagnitude(float magnitude)",
+                            Summary = "Returns a vector in the same direction with the given magnitude. Returns zero if original is zero.",
+                            Code = @"Vector2 capped = velocity.WithMagnitude(maxSpeed);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "DirectionTo(Vector2 to)",
+                            Summary = "Returns the normalized direction toward the target. Returns zero if source equals target.",
+                            Code = @"Vector2 dir = transform.position.DirectionTo(target.position);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "DistanceTo(Vector2 to)",
+                            Summary = "Returns the distance to the target vector.",
+                            Code = @"float dist = pos.DistanceTo(target);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Perpendicular() / PerpendicularClockwise()",
+                            Summary = "Returns a vector perpendicular to this one. Perpendicular is counter-clockwise; PerpendicularClockwise is clockwise.",
+                            Code = @"Vector2 normal = moveDir.Perpendicular();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Rotate(float degrees)",
+                            Summary = "Rotates the vector by the given angle in degrees.",
+                            Code = @"Vector2 rotated = forward.Rotate(45f);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "MaxComponent() / MinComponent()",
+                            Summary = "Returns the largest or smallest component of the vector.",
+                            Code = @"float biggest = size.MaxComponent();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsInsideCircle(Vector2 center, float radius)",
+                            Summary = "Returns true when this point is inside the circle. Delegates to InRangeOf.",
+                            Code = @"if (point.IsInsideCircle(origin, radius)) Collect();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsInsideRect(Vector2 center, Vector2 size)",
+                            Summary = "Returns true when this point is inside the axis-aligned rectangle.",
+                            Code = @"if (point.IsInsideRect(roomCenter, roomSize)) Enter();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "RandomPointOnCircle(float radius)",
+                            Summary = "Returns a random point on the circumference of a circle of the given radius around this origin.",
+                            Code = @"Vector2 spawnPos = center.RandomPointOnCircle(spawnRadius);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "RandomPointInDisk(float radius)",
+                            Summary = "Returns a random point inside a disk of the given radius around this origin.",
+                            Code = @"Vector2 scatter = origin.RandomPointInDisk(blastRadius);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "RandomPointInAnnulus(float minRadius, float maxRadius)",
+                            Summary = "Returns a random point in an annulus (ring). Throws if minRadius < 0 or maxRadius < minRadius.",
+                            Code = @"Vector2 pos = center.RandomPointInAnnulus(minSpawn, maxSpawn);" },
+                    }
+                },
+                new TRnKDocEntry
+                {
+                    Title = "Vector3Extensions",
+                    Namespace = "TRnK.Extensions",
+                    Summary = "Fluent Vector3 arithmetic (With/Add/Subtract/Multiply/Divide), rotation helpers, spatial queries, random point generation on configurable planes.",
+                    Description = "All arithmetic methods accept nullable float components. RotateX/Y/Z use Quaternion.AngleAxis. RandomPointOnCircle/InDisk/InAnnulus accept a Plane2D parameter (XY/XZ/YZ) defaulting to XZ (ground plane). IsInsideColliderBounds uses Bounds.Contains for AABB approximation.",
+                    Code =
+@"Vector3 flat   = velocity.With(y: 0f);
+Vector3 moved  = pos.Add(x: 1f, z: -1f);
+Vector3 spun   = forward.RotateY(90f);
+bool    close  = pos.InRangeOf(target, 5f);
+
+// Random spawn on ground plane
+Vector3 spawn = origin.RandomPointInAnnulus(2f, 8f, Plane2D.XZ);",
+                    Tags = new[] { "Vector3", "Math", "Spatial" },
+                    Category = DocCategory.Extensions,
+                    Members = new[]
+                    {
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "With(float? x, float? y, float? z)",
+                            Summary = "Returns a new Vector3 with specified components replaced; omit a param to keep that axis unchanged.",
+                            Code = @"Vector3 flat = velocity.With(y: 0f);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "Add / Subtract / Multiply / Divide(float? x, float? y, float? z)",
+                            Summary = "Fluent per-axis arithmetic. Divide ignores null/zero divisors.",
+                            Code =
+@"Vector3 shifted = pos.Add(y: 1f);
+Vector3 scaled  = vel.Multiply(x: 2f);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "RotateX(float degrees) / RotateY(float degrees) / RotateZ(float degrees)",
+                            Summary = "Rotates the vector around the given axis by the specified angle in degrees using Quaternion.AngleAxis.",
+                            Code = @"Vector3 rotated = forward.RotateY(90f);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "InRangeOf(Vector3 target, float range)",
+                            Summary = "Returns true when distance to target <= range. Negative range always returns false.",
+                            Code = @"if (pos.InRangeOf(enemy.position, attackRange)) Attack();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "WithMagnitude(float magnitude)",
+                            Summary = "Returns a vector in the same direction with the given magnitude. Returns zero if original is zero.",
+                            Code = @"Vector3 capped = velocity.WithMagnitude(maxSpeed);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "DirectionTo(Vector3 to)",
+                            Summary = "Returns the normalized direction toward the target. Returns zero if source equals target.",
+                            Code = @"Vector3 dir = transform.position.DirectionTo(target.position);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "DistanceTo(Vector3 to)",
+                            Summary = "Returns the distance to the target vector.",
+                            Code = @"float dist = pos.DistanceTo(enemy.position);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "MaxComponent() / MinComponent()",
+                            Summary = "Returns the largest or smallest of the X, Y, Z components.",
+                            Code = @"float biggest = bounds.size.MaxComponent();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsInsideSphere(Vector3 center, float radius)",
+                            Summary = "Returns true when this point is inside the sphere. Delegates to InRangeOf.",
+                            Code = @"if (point.IsInsideSphere(blastOrigin, blastRadius)) ApplyDamage();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsInsideBox(Vector3 center, Vector3 size)",
+                            Summary = "Returns true when this point is inside the axis-aligned box.",
+                            Code = @"if (point.IsInsideBox(roomCenter, roomSize)) Trigger();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsInsideColliderBounds(Collider collider)",
+                            Summary = "Returns true when this point is inside the collider's AABB (Bounds.Contains — approximation, not exact shape).",
+                            Code = @"if (point.IsInsideColliderBounds(zoneTrigger)) EnterZone();" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "RandomPointOnCircle(float radius, Plane2D plane = XZ)",
+                            Summary = "Returns a random point on the circumference of a circle around this origin. Plane2D selects XY/XZ/YZ.",
+                            Code = @"Vector3 pos = origin.RandomPointOnCircle(5f, Plane2D.XZ);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "RandomPointInDisk(float radius, Plane2D plane = XZ)",
+                            Summary = "Returns a uniformly random point inside a disk of the given radius around this origin.",
+                            Code = @"Vector3 scatter = origin.RandomPointInDisk(blastRadius);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "RandomPointInAnnulus(float minRadius, float maxRadius, Plane2D plane = XZ)",
+                            Summary = "Returns a uniformly random point in an annulus (ring). Throws if minRadius < 0 or maxRadius < minRadius.",
+                            Code = @"Vector3 spawn = center.RandomPointInAnnulus(minDist, maxDist);" },
+                    }
+                },
+
                 // ── Utilities ───────────────────────────────────
                 new TRnKDocEntry
                 {
                     Title = "MouseUtils",
                     Namespace = "TRnK.Utilities",
-                    Summary = "Mouse world-position helpers for 2D and 3D, raycast shortcuts, and game-window boundary check.",
-                    Description = "GetMousePosition2D works for orthographic cameras. GetMousePosition3D takes a distance parameter. GetMousePosition3DFromRaycast hits actual geometry with an optional layer mask. GetMouseRay returns the screen-to-world ray.",
+                    Summary = "Mouse world-position helpers for 2D and 3D, raycast shortcuts, game-window boundary check, and pointer-over-UI queries.",
+                    Description = "GetMousePosition2D works for orthographic cameras. GetMousePosition3D takes a distance parameter. GetMousePosition3DFromRaycast hits actual geometry using an int layerMask. GetMouseRay returns the screen-to-world ray. All position/ray methods accept an optional Camera (defaults to Camera.main). IsPointerOverUI prevents world-space input from firing through UI.",
                     Code =
 @"bool inWindow = Utils.IsMouseInGameWindow();
-Vector2 pos2D = Utils.GetMousePosition2D();
+Vector2 pos2D = Utils.GetMousePosition2D();            // Camera.main
+Vector2 pos2D = Utils.GetMousePosition2D(cam);         // explicit camera
 Vector3 pos3D = Utils.GetMousePosition3D(10f);
 Vector3 hit3D = Utils.GetMousePosition3DFromRaycast(
     LayerMask.GetMask(""Ground""));
-Ray ray = Utils.GetMouseRay();",
+Ray ray = Utils.GetMouseRay();
+
+if (Utils.IsPointerOverUI()) return;",
                     Tags = new[] { "Mouse", "Input", "Raycast" },
                     Category = DocCategory.Utilities,
                     Members = new[]
@@ -1693,28 +1975,43 @@ Ray ray = Utils.GetMouseRay();",
                         new DocMember { Kind = DocMemberKind.Method, Signature = "IsMouseInGameWindow()",
                             Summary = "Returns true when the mouse cursor is within the game window bounds.",
                             Code = @"if (!Utils.IsMouseInGameWindow()) return;" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetMousePosition2D()",
-                            Summary = "Returns the mouse position in 2D world space using Camera.main.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetMousePosition2D(Camera camera = null)",
+                            Summary = "Returns the mouse position in 2D world space. Defaults to Camera.main when camera is null.",
                             Code =
 @"Vector2 mouseWorld = Utils.GetMousePosition2D();
 aimTarget.position = mouseWorld;" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetMousePosition3D(float distance)",
-                            Summary = "Returns the mouse position on a plane at the given distance from the camera.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetMousePosition3D(float distance, Camera camera = null)",
+                            Summary = "Returns the mouse position on a plane at the given distance from the camera. Defaults to Camera.main.",
                             Code =
 @"Vector3 pos = Utils.GetMousePosition3D(10f);
 targetMarker.position = pos;" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetMousePosition3DFromRaycast(LayerMask layerMask)",
-                            Summary = "Raycasts from the mouse and returns the hit point on geometry in the given layer mask.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetMousePosition3DFromRaycast(int layerMask, Camera camera = null)",
+                            Summary = "Raycasts from the mouse and returns the hit point on geometry matching the int layer mask.",
                             Code =
 @"Vector3 ground = Utils.GetMousePosition3DFromRaycast(
     LayerMask.GetMask(""Ground""));
 character.MoveTo(ground);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetMouseRay()",
-                            Summary = "Returns the Ray from the camera through the current mouse position.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetMouseRay(Camera camera = null)",
+                            Summary = "Returns the Ray from the camera through the current mouse position. Defaults to Camera.main.",
                             Code =
 @"Ray ray = Utils.GetMouseRay();
 if (Physics.Raycast(ray, out RaycastHit hit))
     Debug.Log(hit.collider.name);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsPointerOverUI()",
+                            Summary = "Returns true if the pointer is currently over any Unity UI element.",
+                            Code =
+@"if (Utils.IsPointerOverUI()) return; // block world input while hovering UI" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "IsPointerOverUI(LayerMask layer)",
+                            Summary = "Returns true if the pointer is over a UI element on the given layer.",
+                            Code =
+@"LayerMask hud = LayerMask.GetMask(""HUD"");
+if (Utils.IsPointerOverUI(hud)) return;" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetEventSystemRaycastResults()",
+                            Summary = "Returns all EventSystem raycast results at the current mouse/touch position.",
+                            Code =
+@"var hits = Utils.GetEventSystemRaycastResults();
+foreach (var hit in hits)
+    Debug.Log(hit.gameObject.name);" },
                     }
                 },
                 new TRnKDocEntry
@@ -1785,18 +2082,15 @@ yield return Utils.GetWaitForSecondsRealtime(2f);",
                             Code =
 @"float angle = Utils.GetAngleFromVector(moveDir);
 transform.rotation = Quaternion.Euler(0, 0, angle);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetRandomRotation(Vector3 axis)",
-                            Summary = "Returns a random rotation around the specified axis (or axes) using default 0–360 range.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetRandomRotation(Axis axis, Vector2? xRange = null, Vector2? yRange = null, Vector2? zRange = null)",
+                            Summary = "Returns a random rotation on the specified axes. Axis is a flags enum (X, Y, Z, XY, XZ, YZ, XYZ). Omitted range parameters default to 0–360.",
                             Code =
-@"transform.rotation = Utils.GetRandomRotation(Axis.Y);   // random Y spin
-transform.rotation = Utils.GetRandomRotation(Axis.XYZ); // fully random" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetRandomRotation(Vector3 axis, Vector2 xRange, Vector2 yRange)",
-                            Summary = "Returns a random rotation with per-axis angle ranges specified as Vector2(min, max).",
-                            Code =
-@"Quaternion r = Utils.GetRandomRotation(
+@"transform.rotation = Utils.GetRandomRotation(Axis.Y);             // random Y, 0-360
+transform.rotation = Utils.GetRandomRotation(Axis.XYZ);            // fully random
+transform.rotation = Utils.GetRandomRotation(
     Axis.XY,
-    new Vector2(-30f, 30f),
-    new Vector2(-30f, 30f));" },
+    xRange: new Vector2(-30f, 30f),
+    yRange: new Vector2(-30f, 30f));" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "GetWaitForSeconds(float duration)",
                             Summary = "Returns a cached WaitForSeconds to avoid GC allocation inside coroutines.",
                             Code =
@@ -1810,52 +2104,6 @@ transform.rotation = Utils.GetRandomRotation(Axis.XYZ); // fully random" },
                             Code = @"yield return Utils.GetWaitForSecondsRealtime(2f);" },
                     }
                 },
-                new TRnKDocEntry
-                {
-                    Title = "EventUtils (UnityEvent aliases)",
-                    Namespace = "TRnK.Utilities",
-                    Summary = "Serializable UnityEvent subclasses for common types: FloatEvent, IntEvent, StringEvent, BoolEvent.",
-                    Description = "These typed event aliases save repetitive UnityEvent<float> etc. declarations and are serializable (visible in the inspector). Drop-in replacements for UnityEvent<T>.",
-                    Code =
-@"[SerializeField] private FloatEvent  onValueChanged;
-[SerializeField] private IntEvent    onCountChanged;
-[SerializeField] private StringEvent onTextChanged;
-[SerializeField] private BoolEvent   onToggled;
-
-onValueChanged.Invoke(0.5f);
-onCountChanged.Invoke(3);
-onTextChanged.Invoke(""Hello"");
-onToggled.Invoke(true);",
-                    Tags = new[] { "Event", "UnityEvent", "Serializable" },
-                    Category = DocCategory.Utilities,
-                    Members = new[]
-                    {
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "FloatEvent",
-                            Summary = "Serializable UnityEvent<float>. Visible in the inspector like a standard UnityEvent.",
-                            Code =
-@"[SerializeField] private FloatEvent onHealthChanged;
-
-// Assign in inspector or in code:
-onHealthChanged.AddListener(v => healthBar.fillAmount = v);
-onHealthChanged.Invoke(currentHealth / maxHealth);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "IntEvent",
-                            Summary = "Serializable UnityEvent<int>.",
-                            Code =
-@"[SerializeField] private IntEvent onScoreChanged;
-onScoreChanged.Invoke(score);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "StringEvent",
-                            Summary = "Serializable UnityEvent<string>.",
-                            Code =
-@"[SerializeField] private StringEvent onDialogueLine;
-onDialogueLine.Invoke(""Hello, adventurer!"");" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "BoolEvent",
-                            Summary = "Serializable UnityEvent<bool>.",
-                            Code =
-@"[SerializeField] private BoolEvent onPauseToggled;
-onPauseToggled.Invoke(isPaused);" },
-                    }
-                },
-
                 // ── Editor Tools ─────────────────────────────────
                 new TRnKDocEntry
                 {
@@ -1963,21 +2211,6 @@ countdown.Start();  // now visible in Timer Tracker",
                 },
 
                 // ── TRnK.Signal ────────────────────────────────────────────────
-                new TRnKDocEntry
-                {
-                    Title = "TRnK.Signal — Installation",
-                    Namespace = "Package: unity-trnk-signal",
-                    Summary = "TRnK.Signal is a separate package and must be installed via UPM before use.",
-                    Description = "TRnK.Signal is NOT included in TRnK. Install TRnK.Toolkit first, then add TRnK.Signal via Unity Package Manager → Add package from git URL.",
-                    Code =
-@"// 1. Install TRnK.Toolkit first
-https://github.com/trnkdev/unity-trnk-toolkit.git
-
-// 2. Then install TRnK.Signal
-https://github.com/trnkdev/unity-trnk-signal.git",
-                    Tags = new[] { "Install", "UPM", "Setup" },
-                    Category = DocCategory.TRnKSignal
-                },
                 new TRnKDocEntry
                 {
                     Title = "ISignal",
@@ -2267,21 +2500,6 @@ public sealed class TeamFilter : ISignalFilter
                 // ── TRnK.Flow ──────────────────────────────────────────────────
                 new TRnKDocEntry
                 {
-                    Title = "TRnK.Flow — Installation",
-                    Namespace = "Package: unity-trnk-flow",
-                    Summary = "TRnK.Flow is a separate package and must be installed via UPM before use.",
-                    Description = "TRnK.Flow is NOT included in TRnK. Install TRnK.Toolkit first, then add TRnK.Flow via Unity Package Manager → Add package from git URL.",
-                    Code =
-@"// 1. Install TRnK.Toolkit first
-https://github.com/trnkdev/unity-trnk-toolkit.git
-
-// 2. Then install TRnK.Flow
-https://github.com/trnkdev/unity-trnk-flow.git",
-                    Tags = new[] { "Install", "UPM", "Setup" },
-                    Category = DocCategory.TRnKFlow
-                },
-                new TRnKDocEntry
-                {
                     Title = "StateBehaviour",
                     Namespace = "TRnK.Flow",
                     Summary = "MonoBehaviour-based FSM controller. Derive from it, create states, then declare transitions in Awake.",
@@ -2480,21 +2698,6 @@ patrol?.SetNextWaypoint(wp);" },
                 },
 
                 // ── TRnK.Serializer ────────────────────────────────────────────
-                new TRnKDocEntry
-                {
-                    Title = "TRnK.Serializer — Installation",
-                    Namespace = "Package: unity-trnk-serializer",
-                    Summary = "TRnK.Serializer is a separate package and must be installed via UPM before use.",
-                    Description = "TRnK.Serializer is NOT included in TRnK. Requires Unity 2021+ (Newtonsoft.Json ships by default). Install TRnK.Toolkit first, then add TRnK.Serializer via Unity Package Manager → Add package from git URL.",
-                    Code =
-@"// 1. Install TRnK.Toolkit first
-https://github.com/trnkdev/unity-trnk-toolkit.git
-
-// 2. Then install TRnK.Serializer
-https://github.com/trnkdev/unity-trnk-serializer.git",
-                    Tags = new[] { "Install", "UPM", "Setup" },
-                    Category = DocCategory.TRnKSerializer
-                },
                 new TRnKDocEntry
                 {
                     Title = "NSR.Save / NSR.Load",

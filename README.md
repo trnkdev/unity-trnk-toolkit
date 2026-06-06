@@ -12,9 +12,8 @@ Navigate to each section below for complete API reference and usage examples:
 
 | Category         | Description                                                 | Link                                   |
 | ---------------- | ----------------------------------------------------------- | -------------------------------------- |
-| **Core**         | Foundational systems: singletons, timers, and utilities     | [📖 Core](Docs/CORE.md)                |
+| **Core**         | Foundational systems: singletons, pooling, and utilities    | [📖 Core](Docs/CORE.md)                |
 | **Components**   | MonoBehaviour components for common game functionality      | [📖 Components](Docs/COMPONENTS.md)    |
-| **Services**     | Singleton services for networking and time management       | [📖 Services](Docs/SERVICES.md)        |
 | **Extensions**   | Extension methods for Unity and C# types                    | [📖 Extensions](Docs/EXTENSIONS.md)    |
 | **Utilities**    | Static utility classes and helper functions                 | [📖 Utilities](Docs/UTILITIES.md)      |
 | **Editor Tools** | Toolbar tools, screenshot, timer tracker, and project setup | [📖 Editor Tools](Docs/EDITORTOOLS.md) |
@@ -42,6 +41,7 @@ https://github.com/trnkdev/unity-trnk-toolkit.git
 
 TRnK.Toolkit is part of a suite of Unity packages:
 
+- **[TRnK Timer](https://github.com/trnkdev/unity-trnk-timer)**: PlayerLoop-driven countdown and stopwatch timers. Migrated from Toolkit v2.5.3.
 - **[TRnK Serializer](https://github.com/trnkdev/unity-trnk-serializer)**: Save/load and data serialization powered by Newtonsoft.Json.
 - **[TRnK Signal](https://github.com/trnkdev/unity-trnk-signal)**: Type-safe event/signal bus with filters and priorities.
 - **[TRnK Flow](https://github.com/trnkdev/unity-trnk-flow)**: Lightweight state machine and transition flow helpers.

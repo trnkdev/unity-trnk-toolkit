@@ -104,9 +104,11 @@ Multiplies the Game View resolution before capture. A `2×` supersize on a 1080p
 
 ### Timer Tracker Window
 
-`Window > TRnK Framework > Timer Tracker`
+`Tools > TRnK > Timer Tracker`
 
-Visualises all active **Countdowns** and **Stopwatches** created via the TRnK.Toolkit Timer system while in Play mode.
+> Timer Tracker is part of the **TRnK Timer** package (`com.trnkdev.unitytimer`). It is documented here for discoverability but lives in `Assets/TRnK Timer/`.
+
+Visualises all active **Countdowns** and **Stopwatches** created via the `TRnK.Timer` system while in Play mode.
 
 **Features:**
 
@@ -116,7 +118,7 @@ Visualises all active **Countdowns** and **Stopwatches** created via the TRnK.To
 - Paginated at 20 items per page for large timer counts
 - Clears automatically on exiting Play mode
 
-> Timers are created via `Countdown.Create` / `Stopwatch.Create`, or the `Delay` / `Repeat` extension methods on `MonoBehaviour` — see [TimerExtensions](EXTENSIONS.md#timerextensions).
+> Timers are created via `Countdown.Create` / `Stopwatch.Create`, or the `Delay` / `Repeat` extension methods on `MonoBehaviour` — see the [TRnK Timer README](../../TRnK Timer/README.md).
 
 ---
 

@@ -6,23 +6,7 @@ using UnityEngine;
 
 namespace TRnK.Toolkit
 {
-    /// <summary>
-    /// Lightweight, reusable pagination bar for Unity Editor inspectors and windows.
-    /// Keeps consistent styling and layout, handling prev/next buttons and direct page input.
-    /// 
-    /// Usage (ID-based state):
-    /// <code>
-    /// var slice = PaginationEditor.Draw(target.GetInstanceID(), totalItems, itemsPerPage: 10);
-    /// for (int i = slice.Start; i < slice.End; i++) { /* draw row i */ }
-    /// </code>
-    /// 
-    /// Usage (explicit state):
-    /// <code>
-    /// PaginationEditor.State state;
-    /// var slice = PaginationEditor.Draw(ref state, totalItems, itemsPerPage: 10);
-    /// </code>
-    /// </summary>
-    internal static class PaginationEditor
+    public static class PaginationEditor
     {
         // Visual constants tuned for compact inspector toolbars
         private static readonly Color BorderColor = new(0.5f, 0.5f, 0.5f, 0.3f);
