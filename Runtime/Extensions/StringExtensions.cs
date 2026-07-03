@@ -48,14 +48,14 @@ namespace TRnK.Extensions
         public static string AsExactPercent(this float value, int decimalPlaces = 0)
         {
             var format = decimalPlaces > 0 ? "0." + new string('#', decimalPlaces) : "0";
-            return value.ToString(format) + "%";
+            return value.ToString(format, CultureInfo.InvariantCulture) + "%";
         }
 
         /// <summary>Converts floating value to percentage string (0.5f → 50%).</summary>
         public static string AsPercent(this float value, int decimalPlaces = 0)
         {
             var format = decimalPlaces > 0 ? "0." + new string('#', decimalPlaces) : "0";
-            return (value * 100).ToString(format) + "%";
+            return (value * 100).ToString(format, CultureInfo.InvariantCulture) + "%";
         }
 
         /// <summary>Removes all spaces from string. Null-safe.</summary>
