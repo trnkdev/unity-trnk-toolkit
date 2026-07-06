@@ -78,37 +78,32 @@ namespace TRnK.Toolkit
         }
 
 #if UNITY_6000_3_OR_NEWER
+        private static MainToolbarDropdown s_unity6000Element;
+        private static Texture2D s_unity6000Icon;
+
         [MainToolbarElement("TRnK.Toolkit/Scene Switcher", defaultDockPosition = MainToolbarDockPosition.Left)]
         public static MainToolbarElement CreateMainToolbarElement()
         {
-            var iconTex = ToolbarUtils.GetBestIcon(
+            s_unity6000Icon = ToolbarUtils.GetBestIcon(
                 "d_SceneAsset Icon",
                 "SceneAsset Icon",
                 "d_SceneViewFx",
                 "SceneViewFx"
             );
 
-            var content = new MainToolbarContent(iconTex)
-            {
-                text = string.Empty,
-                tooltip = "Switch active scene (Build Settings)"
-            };
-
-            MainToolbarButton button = null;
-            button = new MainToolbarButton(content, () => ShowUnity6000Menu(button));
-            button.name = "TRnK.ToolkitSceneSwitcher";
-
-            button.RegisterCallback<AttachToPanelEvent>(_ => ApplyUnity6000Visual(button));
-            button.schedule.Execute(() => ApplyUnity6000Visual(button)).Every(250);
-            return button;
+            var content = new MainToolbarContent(string.Empty, s_unity6000Icon, "Switch active scene (Build Settings)");
+            s_unity6000Element = new MainToolbarDropdown(content, rect => ShowUnity6000Menu(rect));
+            ApplyUnity6000Visual();
+            return s_unity6000Element;
         }
 
-        private static void ApplyUnity6000Visual(VisualElement button)
+        private static void ApplyUnity6000Visual()
         {
+            if (s_unity6000Element == null) return;
             bool hidden = false;
             try { hidden = TRnKSettings.GetOrCreate().hideToolbar; } catch { }
-            button.style.display = hidden ? DisplayStyle.None : DisplayStyle.Flex;
-            button.SetEnabled(!hidden);
+            s_unity6000Element.displayed = !hidden;
+            s_unity6000Element.enabled = !hidden;
 
             try
             {
@@ -116,14 +111,12 @@ namespace TRnK.Toolkit
                 var baseDisplay = active.IsValid() && !string.IsNullOrEmpty(active.name) ? active.name : "Scenes";
                 if (HasStartupScene() && active.IsValid() && ScenePathMatchesStartup(active.path))
                     baseDisplay += " ★";
-
-                var label = button.Q<Label>();
-                if (label != null) label.text = TruncateDisplayName(baseDisplay);
+                s_unity6000Element.content = new MainToolbarContent(TruncateDisplayName(baseDisplay), s_unity6000Icon, "Switch active scene (Build Settings)");
             }
             catch { }
         }
 
-        private static void ShowUnity6000Menu(VisualElement anchor)
+        private static void ShowUnity6000Menu(Rect rect)
         {
             RefreshSceneList();
 
@@ -183,8 +176,7 @@ namespace TRnK.Toolkit
                 menu.AddItem("Refresh", false, RefreshSceneList);
             }
 
-            var rect = anchor != null ? anchor.worldBound : new Rect(0, 0, 200, 20);
-            menu.DropDown(rect, anchor, true);
+            menu.DropDown(rect, null, true);
         }
 
         private static void AppendStartupMarkItemUnity6000(GenericDropdownMenu menu)
@@ -316,6 +308,7 @@ namespace TRnK.Toolkit
         internal static void ApplyPreferenceChange(bool enabled)
         {
 #if UNITY_6000_3_OR_NEWER
+            ApplyUnity6000Visual();
             return;
 #else
             if (enabled)
@@ -509,6 +502,10 @@ namespace TRnK.Toolkit
 
         private static void UpdateSelectionVisual()
         {
+#if UNITY_6000_3_OR_NEWER
+            ApplyUnity6000Visual();
+            return;
+#endif
 #if UNITY_2020_1_OR_NEWER
             PopulateToolbarMenu();
 #endif

@@ -46,114 +46,51 @@ namespace TRnK.Toolkit
         }
 
 #if UNITY_6000_3_OR_NEWER
-        private class Unity6000TimeScaleElement : VisualElement
-        {
-            private readonly Slider slider;
-            private readonly Label valueLabel;
-
-            public Unity6000TimeScaleElement()
-            {
-                name = "TRnK.ToolkitTimeScaleMainToolbar";
-                style.flexDirection = FlexDirection.Row;
-                style.alignItems = Align.Center;
-                style.paddingLeft = 4;
-                style.paddingRight = 4;
-
-                var titleLabel = new Label("Time Scale") { name = "TRnK.ToolkitTimeScaleTitle" };
-                titleLabel.style.unityTextAlign = TextAnchor.MiddleLeft;
-                titleLabel.style.fontSize = 12;
-                titleLabel.style.marginLeft = 1;
-                titleLabel.style.marginRight = 2;
-                titleLabel.style.minWidth = 72;
-
-                slider = new Slider(GetMin(), GetMax())
-                {
-                    name = "TRnK.ToolkitTimeScaleSlider",
-                    showInputField = false
-                };
-                slider.style.minWidth = 88;
-                slider.style.maxWidth = 88;
-                slider.style.marginLeft = 1;
-                slider.style.marginRight = 1;
-
-                valueLabel = new Label("1.00") { name = "TRnK.ToolkitTimeScaleValue" };
-                valueLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
-                valueLabel.style.minWidth = 40;
-                valueLabel.style.maxWidth = 40;
-                valueLabel.style.fontSize = 12;
-                valueLabel.style.marginLeft = 0;
-                valueLabel.style.marginRight = 0;
-
-                var refreshTex = ToolbarUtils.GetBestIcon(
-                    "d_Refresh",
-                    "Refresh",
-                    "TreeEditor.Refresh",
-                    "d_RotateTool",
-                    "RotateTool"
-                );
-
-                var resetButton = new Button(() =>
-                {
-                    ResetToDefault();
-                    float v = GetCurrentTimeScale();
-                    slider.SetValueWithoutNotify(v);
-                    valueLabel.text = v.ToString("0.00");
-                })
-                {
-                    name = "TRnK.ToolkitTimeScaleReset",
-                    tooltip = "Reset Time Scale (1.0)"
-                };
-                resetButton.focusable = false;
-                resetButton.style.paddingLeft = 0;
-                resetButton.style.paddingRight = 0;
-                resetButton.style.paddingTop = 0;
-                resetButton.style.paddingBottom = 0;
-                resetButton.style.marginLeft = 0;
-                resetButton.style.marginRight = 1;
-                resetButton.style.backgroundColor = StyleKeyword.Null;
-                resetButton.style.justifyContent = Justify.Center;
-                resetButton.style.alignItems = Align.Center;
-
-                var resetIcon = new Image { image = refreshTex, scaleMode = ScaleMode.ScaleToFit };
-                resetIcon.style.width = 14;
-                resetIcon.style.height = 14;
-                resetButton.Add(resetIcon);
-
-                Add(titleLabel);
-                Add(slider);
-                Add(valueLabel);
-                Add(resetButton);
-
-                slider.RegisterValueChangedCallback(e =>
-                {
-                    SetTimeScale(e.newValue);
-                    float v = GetCurrentTimeScale();
-                    valueLabel.text = v.ToString("0.00");
-                });
-
-                RegisterCallback<AttachToPanelEvent>(_ => ApplyVisibilityAndSync());
-                schedule.Execute(ApplyVisibilityAndSync).Every(250);
-            }
-
-            private void ApplyVisibilityAndSync()
-            {
-                bool hidden = false;
-                try { hidden = TRnKSettings.GetOrCreate().hideToolbar; } catch { }
-                style.display = hidden ? DisplayStyle.None : DisplayStyle.Flex;
-                SetEnabled(!hidden);
-
-                float v = GetCurrentTimeScale();
-                slider.lowValue = GetMin();
-                slider.highValue = GetMax();
-                slider.SetValueWithoutNotify(v);
-                valueLabel.text = v.ToString("0.00");
-            }
-        }
+        private static MainToolbarSlider s_unity6000Slider;
+        private static System.Reflection.FieldInfo s_sliderFieldInfo;
 
         [MainToolbarElement("TRnK.Toolkit/Time Scale", defaultDockPosition = MainToolbarDockPosition.Left)]
         public static MainToolbarElement CreateMainToolbarElement()
         {
-            return new MainToolbarCustom(() => new Unity6000TimeScaleElement());
+            LoadTimeManager();
+            float v = GetCurrentTimeScale();
+            var content = new MainToolbarContent("Time Scale");
+            s_unity6000Slider = new MainToolbarSlider(content, v, GetMin(), GetMax(), newVal =>
+            {
+                SetTimeScale(newVal);
+            });
+            s_unity6000Slider.populateContextMenu = menu =>
+                menu.AppendAction("Reset (1.0)", _ => { ResetToDefault(); SyncSliderDisplay(); });
+            ApplyUnity6000Visibility();
+            return s_unity6000Slider;
+        }
+
+        private static void ApplyUnity6000Visibility()
+        {
+            if (s_unity6000Slider == null) return;
+            bool hidden = false;
+            try { hidden = TRnKSettings.GetOrCreate().hideToolbar; } catch { }
+            s_unity6000Slider.displayed = !hidden;
+            s_unity6000Slider.enabled = !hidden;
+        }
+
+        // Updates the slider's visual position to reflect an external time scale change.
+        private static void SyncSliderDisplay()
+        {
+            if (s_unity6000Slider == null) return;
+            try
+            {
+                if (s_sliderFieldInfo == null)
+                    s_sliderFieldInfo = typeof(MainToolbarSlider).GetField("m_Slider", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+                var inner = s_sliderFieldInfo?.GetValue(s_unity6000Slider) as EditorToolbarSlider;
+                if (inner != null)
+                {
+                    inner.lowValue = GetMin();
+                    inner.highValue = GetMax();
+                    inner.SetValueWithoutNotify(GetCurrentTimeScale());
+                }
+            }
+            catch { }
         }
 #endif
 
@@ -491,7 +428,9 @@ namespace TRnK.Toolkit
             if (!Mathf.Approximately(ext, lastAppliedTimeScale))
             {
                 lastAppliedTimeScale = ext;
-#if !UNITY_6000_3_OR_NEWER
+#if UNITY_6000_3_OR_NEWER
+                SyncSliderDisplay();
+#else
                 if (timeSlider != null) timeSlider.SetValueWithoutNotify(ext);
                 if (valueLabel != null) valueLabel.text = FormatValue(ext);
 #endif
@@ -560,6 +499,7 @@ namespace TRnK.Toolkit
 #if UNITY_6000_3_OR_NEWER
             // Unity 6.3+ uses MainToolbarElement integration; the element polls hideToolbar itself.
             installed = enabled;
+            ApplyUnity6000Visibility();
             return;
 #else
             if (enabled)

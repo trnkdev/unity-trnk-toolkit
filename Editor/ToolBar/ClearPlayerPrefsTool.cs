@@ -45,6 +45,7 @@ namespace TRnK.Toolkit
 
 #if UNITY_6000_3_OR_NEWER
         private static Texture2D unity6000Icon;
+        private static MainToolbarButton s_unity6000Button;
 
         [MainToolbarElement("TRnK.Toolkit/Clear PlayerPrefs", defaultDockPosition = MainToolbarDockPosition.Left)]
         public static MainToolbarElement CreateMainToolbarElement()
@@ -65,23 +66,18 @@ namespace TRnK.Toolkit
                 tooltip = "Clear All PlayerPrefs (with confirmation)"
             };
 
-            var button = new MainToolbarButton(content, TriggerClearFromToolbar);
-            button.name = "TRnK.ToolkitClearPlayerPrefs";
-
-            button.RegisterCallback<AttachToPanelEvent>(_ => ApplyUnity6000Visibility(button));
-            button.schedule.Execute(() => ApplyUnity6000Visibility(button)).Every(250);
-
-            return button;
+            s_unity6000Button = new MainToolbarButton(content, TriggerClearFromToolbar);
+            ApplyUnity6000Visibility();
+            return s_unity6000Button;
         }
 
-        private static void ApplyUnity6000Visibility(VisualElement ve)
-        // Best-effort: keep in sync with project settings without hard dependencies.
+        private static void ApplyUnity6000Visibility()
         {
-            if (ve == null) return;
+            if (s_unity6000Button == null) return;
             bool hidden = false;
             try { hidden = TRnKSettings.GetOrCreate().hideToolbar; } catch { }
-            ve.style.display = hidden ? DisplayStyle.None : DisplayStyle.Flex;
-            ve.SetEnabled(!hidden);
+            s_unity6000Button.displayed = !hidden;
+            s_unity6000Button.enabled = !hidden;
         }
 #endif
 
@@ -206,8 +202,8 @@ namespace TRnK.Toolkit
         internal static void ApplyPreferenceChange(bool enabled)
         {
 #if UNITY_6000_3_OR_NEWER
-            // Unity 6.3+ uses MainToolbarElement integration; the element will hide itself based on settings.
             installed = enabled;
+            ApplyUnity6000Visibility();
             return;
 #else
             if (enabled)
