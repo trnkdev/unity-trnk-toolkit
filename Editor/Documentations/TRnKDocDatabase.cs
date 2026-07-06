@@ -49,35 +49,6 @@ GameManager.Instance.Score += 100;",
                 },
                 new TRnKDocEntry
                 {
-                    Title = "LazySingleton<T>",
-                    Namespace = "TRnK.Singleton",
-                    Summary = "Auto-created singleton. A new GameObject is spawned on first access if none exists.",
-                    Description = "Ideal for utility managers (audio, pooling, etc.) that do not need to be pre-placed in any scene. The instance is created lazily and destroyed when the application quits. Safe to use with Enter Play Mode / Disable Domain Reload in the Editor.",
-                    Code =
-@"public class AudioManager : LazySingleton<AudioManager>
-{
-    public void PlayMusic(AudioClip clip) { /* ... */ }
-}
-
-// No scene setup needed — created on first access
-AudioManager.Instance.PlayMusic(backgroundMusic);",
-                    Tags = new[] { "Singleton", "Lazy", "Auto-create" },
-                    Category = DocCategory.Core,
-                    Members = new[]
-                    {
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Property,
-                            Signature = "Instance",
-                            Summary = "Returns (or lazily creates) the singleton instance. Creates a new GameObject if none exists.",
-                            Code =
-@"// Accessing Instance for the first time creates the GameObject automatically
-AudioManager.Instance.PlayMusic(clip);"
-                        },
-                    }
-                },
-                new TRnKDocEntry
-                {
                     Title = "Countdown",
                     Namespace = "TRnK.Timer",
                     Summary = "PlayerLoop-driven countdown timer handle. No coroutines. Supports loops, callbacks, and conditional ticking.",

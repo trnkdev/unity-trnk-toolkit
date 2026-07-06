@@ -244,7 +244,6 @@
 ### Refactor Singleton Pattern
 
 - Change DateTimeManager, TimerManager, and NetworkManger from Lazy to Persistent Singleton.
-- Be cautious when using a LazySingleton (single thread), and a SceneSingleton (Simple but no errors handling).
 - Rewrite documentations.
 
 ## [1.6.3] - 2025-08-23

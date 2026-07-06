@@ -22,20 +22,6 @@ public class GameManager : PersistentSingleton<GameManager>
 GameManager.Instance.Score += 100;
 ```
 
-### LazySingleton
-
-Auto-created on first access. Perfect for utilities.
-
-```csharp
-public class AudioManager : LazySingleton<AudioManager>
-{
-    public void PlayMusic(AudioClip clip) { /* implementation */ }
-}
-
-// Usage - GameObject created automatically
-AudioManager.Instance.PlayMusic(backgroundMusic);
-```
-
 ### Pooling
 
 ```csharp
