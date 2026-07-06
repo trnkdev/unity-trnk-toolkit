@@ -46,7 +46,7 @@ namespace TRnK.Toolkit
         }
 
 #if UNITY_6000_3_OR_NEWER
-        private class Unity6000TimeScaleElement : MainToolbarElement
+        private class Unity6000TimeScaleElement : VisualElement
         {
             private readonly Slider slider;
             private readonly Label valueLabel;
@@ -153,7 +153,7 @@ namespace TRnK.Toolkit
         [MainToolbarElement("TRnK.Toolkit/Time Scale", defaultDockPosition = MainToolbarDockPosition.Left)]
         public static MainToolbarElement CreateMainToolbarElement()
         {
-            return new Unity6000TimeScaleElement();
+            return new MainToolbarCustom(() => new Unity6000TimeScaleElement());
         }
 #endif
 
@@ -557,6 +557,11 @@ namespace TRnK.Toolkit
 
         internal static void ApplyPreferenceChange(bool enabled)
         {
+#if UNITY_6000_3_OR_NEWER
+            // Unity 6.3+ uses MainToolbarElement integration; the element polls hideToolbar itself.
+            installed = enabled;
+            return;
+#else
             if (enabled)
             {
                 if (!installed) EnsureInstall();
@@ -575,6 +580,7 @@ namespace TRnK.Toolkit
                 titleLabel = null;
                 timeManagerSO = null; timeScaleProp = null;
             }
+#endif
         }
     }
 }

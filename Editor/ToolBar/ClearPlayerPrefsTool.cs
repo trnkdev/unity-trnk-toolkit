@@ -10,7 +10,6 @@ using UnityEditor.UIElements;
 #endif
 #if UNITY_6000_3_OR_NEWER
 using UnityEditor.Toolbars;
-using TRnK.Logger;
 #endif
 
 namespace TRnK.Toolkit
