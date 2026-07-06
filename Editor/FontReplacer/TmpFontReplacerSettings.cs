@@ -52,26 +52,17 @@ namespace TRnK.Toolkit
         private const string SettingsFolder = "Assets/Plugins/TRnK/Toolkit/Editor";
         private const string AssetPath = SettingsFolder + "/TmpFontReplacerSettings.asset";
 
-        public static TmpFontReplacerSettings GetOrCreate()
-        {
-            var settings = AssetDatabase.LoadAssetAtPath<TmpFontReplacerSettings>(AssetPath);
-            if (settings != null) return settings;
+        private static TmpFontReplacerSettings s_instance;
+        private static TmpFontReplacerSettings s_transient;
 
-            EnsureFolders();
-
-            settings = CreateInstance<TmpFontReplacerSettings>();
-            AssetDatabase.CreateAsset(settings, AssetPath);
-            EditorAssetUtils.SaveAndRefresh();
-            return settings;
-        }
+        public static TmpFontReplacerSettings GetOrCreate() =>
+            EditorAssetUtils.GetOrCreateSettings(SettingsFolder, AssetPath, ref s_instance, ref s_transient);
 
         public void Save()
         {
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssetIfDirty(this);
         }
-
-        private static void EnsureFolders() => EditorAssetUtils.EnsureFolderPath(SettingsFolder);
     }
 }
 #endif

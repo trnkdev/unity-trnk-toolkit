@@ -1,5 +1,4 @@
 #if UNITY_EDITOR
-using UnityEditor;
 using UnityEngine;
 
 namespace TRnK.Toolkit
@@ -16,20 +15,11 @@ namespace TRnK.Toolkit
         private const string SettingsFolder = "Assets/Plugins/TRnK/Toolkit/Editor";
         private const string AssetPath = SettingsFolder + "/TRnKSettings.asset";
 
-        public static TRnKSettings GetOrCreate()
-        {
-            var settings = AssetDatabase.LoadAssetAtPath<TRnKSettings>(AssetPath);
-            if (settings != null) return settings;
+        private static TRnKSettings s_instance;
+        private static TRnKSettings s_transient;
 
-            EnsureFolders();
-
-            settings = CreateInstance<TRnKSettings>();
-            AssetDatabase.CreateAsset(settings, AssetPath);
-            EditorAssetUtils.SaveAndRefresh();
-            return settings;
-        }
-
-        private static void EnsureFolders() => EditorAssetUtils.EnsureFolderPath(SettingsFolder);
+        public static TRnKSettings GetOrCreate() =>
+            EditorAssetUtils.GetOrCreateSettings(SettingsFolder, AssetPath, ref s_instance, ref s_transient);
     }
 }
 #endif

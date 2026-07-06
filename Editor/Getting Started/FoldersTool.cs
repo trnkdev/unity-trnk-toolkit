@@ -90,7 +90,9 @@ namespace TRnK.Toolkit
             for (int i = 1; i < parts.Length; i++)
             {
                 string next = current + "/" + parts[i];
-                if (!AssetDatabase.IsValidFolder(next))
+                // IsValidFolder alone is unreliable mid-refresh: CreateFolder on a folder
+                // that already exists on disk uniquifies ("Folder 1") instead of no-oping.
+                if (!AssetDatabase.IsValidFolder(next) && !System.IO.Directory.Exists(next))
                 {
                     AssetDatabase.CreateFolder(current, parts[i]);
                     createdAny = true;

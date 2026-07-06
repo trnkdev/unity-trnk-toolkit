@@ -63,25 +63,19 @@ namespace TRnK.Toolkit
             };
         }
 
+        private static FoldersSettings s_instance;
+        private static FoldersSettings s_transient;
+
         public static FoldersSettings LoadOrCreate()
         {
             string assetPath = Path.Combine(AssetDir, AssetName).Replace("\\", "/");
-            var settings = AssetDatabase.LoadAssetAtPath<FoldersSettings>(assetPath);
-            if (settings != null)
-                return settings;
-
-            EnsureFolders();
-
-            settings = CreateInstance<FoldersSettings>();
-            settings.SetDefaults();
-            // initialize namespace root from project settings or derived default
-            settings._namespaceRoot = settings.DeriveInitialNamespaceRoot();
-            AssetDatabase.CreateAsset(settings, assetPath);
-            AssetDatabase.SaveAssets();
-            return settings;
+            return EditorAssetUtils.GetOrCreateSettings(AssetDir, assetPath, ref s_instance, ref s_transient, settings =>
+            {
+                settings.SetDefaults();
+                // initialize namespace root from project settings or derived default
+                settings._namespaceRoot = settings.DeriveInitialNamespaceRoot();
+            });
         }
-
-        private static void EnsureFolders() => EditorAssetUtils.EnsureFolderPath(AssetDir);
 
         private string DeriveInitialNamespaceRoot()
         {

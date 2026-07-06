@@ -74,23 +74,15 @@ namespace TRnK.Toolkit
             return added;
         }
 
+        private static PackagesSettings s_instance;
+        private static PackagesSettings s_transient;
+
         public static PackagesSettings LoadOrCreate()
         {
             string assetPath = Path.Combine(AssetDir, AssetName).Replace("\\", "/");
-            var settings = AssetDatabase.LoadAssetAtPath<PackagesSettings>(assetPath);
-            if (settings != null)
-                return settings;
-
-            EnsureFolders();
-
-            settings = CreateInstance<PackagesSettings>();
-            settings.SetDefaults();
-            AssetDatabase.CreateAsset(settings, assetPath);
-            AssetDatabase.SaveAssets();
-            return settings;
+            return EditorAssetUtils.GetOrCreateSettings(AssetDir, assetPath, ref s_instance, ref s_transient,
+                settings => settings.SetDefaults());
         }
-
-        private static void EnsureFolders() => EditorAssetUtils.EnsureFolderPath(AssetDir);
     }
 }
 #endif

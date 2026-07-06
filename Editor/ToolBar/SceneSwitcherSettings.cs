@@ -1,7 +1,6 @@
 #if UNITY_EDITOR
 using System;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 
 namespace TRnK.Toolkit
@@ -26,20 +25,11 @@ namespace TRnK.Toolkit
         private const string SettingsFolder = "Assets/Plugins/TRnK/Toolkit/Editor";
         private const string AssetPath = SettingsFolder + "/SceneSwitcherSettings.asset";
 
-        public static SceneSwitcherSettings GetOrCreate()
-        {
-            var settings = AssetDatabase.LoadAssetAtPath<SceneSwitcherSettings>(AssetPath);
-            if (settings != null) return settings;
+        private static SceneSwitcherSettings s_instance;
+        private static SceneSwitcherSettings s_transient;
 
-            EnsureFolders();
-
-            settings = CreateInstance<SceneSwitcherSettings>();
-            AssetDatabase.CreateAsset(settings, AssetPath);
-            EditorAssetUtils.SaveAndRefresh();
-            return settings;
-        }
-
-        private static void EnsureFolders() => EditorAssetUtils.EnsureFolderPath(SettingsFolder);
+        public static SceneSwitcherSettings GetOrCreate() =>
+            EditorAssetUtils.GetOrCreateSettings(SettingsFolder, AssetPath, ref s_instance, ref s_transient);
     }
 }
 #endif
