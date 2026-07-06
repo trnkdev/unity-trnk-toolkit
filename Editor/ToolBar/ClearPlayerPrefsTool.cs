@@ -22,8 +22,8 @@ namespace TRnK.Toolkit
         private const string PendingClearKey = "TRnK.Toolkit:CPP:PendingClear";
         private const string RequestedFromPlayKey = "TRnK.Toolkit:CPP:RequestedFromPlay";
 
-        private static bool installed;
 #if !UNITY_6000_3_OR_NEWER
+        private static bool installed;
         private static VisualElement container;
         private static Button clearButton;
         private static Image clearIcon;
@@ -44,10 +44,11 @@ namespace TRnK.Toolkit
         }
 
 #if UNITY_6000_3_OR_NEWER
-        private static Texture2D unity6000Icon;
-        private static MainToolbarButton s_unity6000Button;
+        private const string ToolbarElementId = "TRnK.Toolkit/Clear PlayerPrefs";
 
-        [MainToolbarElement("TRnK.Toolkit/Clear PlayerPrefs", defaultDockPosition = MainToolbarDockPosition.Left)]
+        private static Texture2D unity6000Icon;
+
+        [MainToolbarElement(ToolbarElementId, defaultDockPosition = MainToolbarDockPosition.Right)]
         public static MainToolbarElement CreateMainToolbarElement()
         {
             if (unity6000Icon == null)
@@ -60,24 +61,8 @@ namespace TRnK.Toolkit
                 );
             }
 
-            var content = new MainToolbarContent(unity6000Icon)
-            {
-                text = string.Empty,
-                tooltip = "Clear All PlayerPrefs (with confirmation)"
-            };
-
-            s_unity6000Button = new MainToolbarButton(content, TriggerClearFromToolbar);
-            ApplyUnity6000Visibility();
-            return s_unity6000Button;
-        }
-
-        private static void ApplyUnity6000Visibility()
-        {
-            if (s_unity6000Button == null) return;
-            bool hidden = false;
-            try { hidden = TRnKSettings.GetOrCreate().hideToolbar; } catch { }
-            s_unity6000Button.displayed = !hidden;
-            s_unity6000Button.enabled = !hidden;
+            var content = new MainToolbarContent(unity6000Icon, "Clear All PlayerPrefs (with confirmation)");
+            return new MainToolbarButton(content, TriggerClearFromToolbar);
         }
 #endif
 
@@ -180,7 +165,6 @@ namespace TRnK.Toolkit
         private static void Uninstall()
         {
 #if UNITY_6000_3_OR_NEWER
-            installed = false;
             return;
 #else
             if (!installed) return;
@@ -202,8 +186,7 @@ namespace TRnK.Toolkit
         internal static void ApplyPreferenceChange(bool enabled)
         {
 #if UNITY_6000_3_OR_NEWER
-            installed = enabled;
-            ApplyUnity6000Visibility();
+            MainToolbarActivator.SetDisplayed(enabled);
             return;
 #else
             if (enabled)

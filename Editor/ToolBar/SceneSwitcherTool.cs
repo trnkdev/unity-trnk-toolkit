@@ -78,62 +78,68 @@ namespace TRnK.Toolkit
         }
 
 #if UNITY_6000_3_OR_NEWER
-        private static MainToolbarDropdown s_unity6000Element;
+        private const string ToolbarElementId = "TRnK.Toolkit/Scene Switcher";
+
         private static Texture2D s_unity6000Icon;
 
-        [MainToolbarElement("TRnK.Toolkit/Scene Switcher", defaultDockPosition = MainToolbarDockPosition.Left)]
+        // The factory is re-invoked by MainToolbar.Refresh(ToolbarElementId), so it must
+        // build the dropdown from current state and hold no element instance.
+        [MainToolbarElement(ToolbarElementId, defaultDockPosition = MainToolbarDockPosition.Right)]
         public static MainToolbarElement CreateMainToolbarElement()
         {
-            s_unity6000Icon = ToolbarUtils.GetBestIcon(
-                "d_SceneAsset Icon",
-                "SceneAsset Icon",
-                "d_SceneViewFx",
-                "SceneViewFx"
-            );
+            if (s_unity6000Icon == null)
+            {
+                s_unity6000Icon = ToolbarUtils.GetBestIcon(
+                    "d_SceneAsset Icon",
+                    "SceneAsset Icon",
+                    "d_SceneViewFx",
+                    "SceneViewFx"
+                );
+            }
 
-            var content = new MainToolbarContent(string.Empty, s_unity6000Icon, "Switch active scene (Build Settings)");
-            s_unity6000Element = new MainToolbarDropdown(content, rect => ShowUnity6000Menu(rect));
-            ApplyUnity6000Visual();
-            return s_unity6000Element;
+            string baseDisplay = "Scenes";
+            try
+            {
+                var active = SceneManager.GetActiveScene();
+                if (active.IsValid() && !string.IsNullOrEmpty(active.name))
+                    baseDisplay = active.name;
+                if (HasStartupScene() && active.IsValid() && ScenePathMatchesStartup(active.path))
+                    baseDisplay += " ★";
+            }
+            catch { }
+
+            var content = new MainToolbarContent(TruncateDisplayName(baseDisplay), s_unity6000Icon, "Switch active scene (Build Settings)");
+            return new MainToolbarDropdown(content, ShowUnity6000Menu);
         }
 
         private static void ApplyUnity6000Visual()
         {
-            if (s_unity6000Element == null) return;
-            bool hidden = false;
-            try { hidden = TRnKSettings.GetOrCreate().hideToolbar; } catch { }
-            s_unity6000Element.displayed = !hidden;
-            s_unity6000Element.enabled = !hidden;
-
-            try
-            {
-                var active = SceneManager.GetActiveScene();
-                var baseDisplay = active.IsValid() && !string.IsNullOrEmpty(active.name) ? active.name : "Scenes";
-                if (HasStartupScene() && active.IsValid() && ScenePathMatchesStartup(active.path))
-                    baseDisplay += " ★";
-                s_unity6000Element.content = new MainToolbarContent(TruncateDisplayName(baseDisplay), s_unity6000Icon, "Switch active scene (Build Settings)");
-            }
-            catch { }
+            // Rebuilds the element via the factory so the label reflects the active scene.
+            MainToolbar.Refresh(ToolbarElementId);
         }
 
         private static void ShowUnity6000Menu(Rect rect)
         {
             RefreshSceneList();
 
-            var menu = new GenericDropdownMenu();
+            // MainToolbarDropdown provides only a Rect, so use GenericMenu (the documented
+            // pattern) — GenericDropdownMenu needs a VisualElement anchor we don't have.
+            var menu = new GenericMenu();
 
             bool hasScenes = sceneNames != null && sceneNames.Length > 0;
-            var activeScene = SceneManager.GetActiveScene();
-            string current = activeScene.name;
+            string current = SceneManager.GetActiveScene().name;
 
             if (!hasScenes)
             {
-                menu.AddItem("Open Scene List...", false, SceneSwitcherSettingsWindow.Open);
-                menu.AddItem("Add Active Scene To Build Settings", false, AddActiveSceneToBuild);
+                menu.AddItem(new GUIContent("Open Scene List..."), false, SceneSwitcherSettingsWindow.Open);
+                if (CanAddActiveScene())
+                    menu.AddItem(new GUIContent("Add Active Scene To Build Settings"), false, AddActiveSceneToBuild);
+                else
+                    menu.AddDisabledItem(new GUIContent("Add Active Scene To Build Settings"));
                 menu.AddSeparator(string.Empty);
                 AppendStartupMarkItemUnity6000(menu);
                 menu.AddSeparator(string.Empty);
-                menu.AddItem("Refresh", false, RefreshSceneList);
+                menu.AddItem(new GUIContent("Refresh"), false, RefreshSceneList);
             }
             else
             {
@@ -144,10 +150,10 @@ namespace TRnK.Toolkit
                 for (int i = 0; i < sceneNames.Length; i++)
                 {
                     if (groupLookup.TryGetValue(scenePaths[i], out var grpU) && !string.IsNullOrEmpty(grpU)) continue;
-                    string itemLabel = sceneNames[i] + "\t" + i;
+                    string itemLabel = sceneNames[i];
                     if (ScenePathMatchesStartup(scenePaths[i])) itemLabel += " ★";
                     string captured = sceneNames[i];
-                    menu.AddItem(itemLabel, captured == current, () => SwitchToScene(captured));
+                    menu.AddItem(new GUIContent(itemLabel), captured == current, () => SwitchToScene(captured));
                     hadUngrouped = true;
                 }
 
@@ -160,39 +166,42 @@ namespace TRnK.Toolkit
                 for (int i = 0; i < sceneNames.Length; i++)
                 {
                     if (!groupLookup.TryGetValue(scenePaths[i], out var grp) || string.IsNullOrEmpty(grp)) continue;
-                    string itemLabel = sceneNames[i] + "\t" + i;
+                    string itemLabel = sceneNames[i];
                     if (ScenePathMatchesStartup(scenePaths[i])) itemLabel += " ★";
                     string captured = sceneNames[i];
-                    menu.AddItem(grp + "/" + itemLabel, captured == current, () => SwitchToScene(captured));
+                    menu.AddItem(new GUIContent(grp + "/" + itemLabel), captured == current, () => SwitchToScene(captured));
                 }
 
                 menu.AddSeparator(string.Empty);
-                menu.AddItem("Open Scene List...", false, OpenBuildProfilesSceneList);
-                menu.AddItem("Scene Switcher Settings...", false, SceneSwitcherSettingsWindow.Open);
-                menu.AddItem("Add Active Scene To Build Settings", false, AddActiveSceneToBuild);
+                menu.AddItem(new GUIContent("Open Scene List..."), false, OpenBuildProfilesSceneList);
+                menu.AddItem(new GUIContent("Scene Switcher Settings..."), false, SceneSwitcherSettingsWindow.Open);
+                if (CanAddActiveScene())
+                    menu.AddItem(new GUIContent("Add Active Scene To Build Settings"), false, AddActiveSceneToBuild);
+                else
+                    menu.AddDisabledItem(new GUIContent("Add Active Scene To Build Settings"));
                 menu.AddSeparator(string.Empty);
                 AppendStartupMarkItemUnity6000(menu);
                 menu.AddSeparator(string.Empty);
-                menu.AddItem("Refresh", false, RefreshSceneList);
+                menu.AddItem(new GUIContent("Refresh"), false, RefreshSceneList);
             }
 
-            menu.DropDown(rect, null, true);
+            menu.DropDown(rect);
         }
 
-        private static void AppendStartupMarkItemUnity6000(GenericDropdownMenu menu)
+        private static void AppendStartupMarkItemUnity6000(GenericMenu menu)
         {
             string startupDisplay = StartupSceneName();
             if (HasStartupScene())
             {
-                menu.AddItem($"Clear Startup Scene ({startupDisplay})", false, ClearStartupScene);
+                menu.AddItem(new GUIContent($"Clear Startup Scene ({startupDisplay})"), false, ClearStartupScene);
             }
             else
             {
-                menu.AddItem("Mark Active Scene As Startup", false, MarkActiveSceneAsStartup);
+                menu.AddItem(new GUIContent("Mark Active Scene As Startup"), false, MarkActiveSceneAsStartup);
             }
 
             bool actAdd = EditorPrefs.GetBool(PrefActivateLoadedAdditive, true);
-            menu.AddItem("Activate Loaded Additive Scenes On Select", actAdd, ToggleActivateLoadedAdditive);
+            menu.AddItem(new GUIContent("Activate Loaded Additive Scenes On Select"), actAdd, ToggleActivateLoadedAdditive);
         }
 
         private static void MarkActiveSceneAsStartup()
@@ -308,7 +317,7 @@ namespace TRnK.Toolkit
         internal static void ApplyPreferenceChange(bool enabled)
         {
 #if UNITY_6000_3_OR_NEWER
-            ApplyUnity6000Visual();
+            MainToolbarActivator.SetDisplayed(enabled);
             return;
 #else
             if (enabled)
@@ -504,8 +513,7 @@ namespace TRnK.Toolkit
         {
 #if UNITY_6000_3_OR_NEWER
             ApplyUnity6000Visual();
-            return;
-#endif
+#else
 #if UNITY_2020_1_OR_NEWER
             PopulateToolbarMenu();
 #endif
@@ -515,6 +523,7 @@ namespace TRnK.Toolkit
                 if (Array.IndexOf(sceneNames, active) >= 0)
                     fallbackDropdown.value = active;
             }
+#endif
         }
 
         private static void SwitchToScene(string sceneName)

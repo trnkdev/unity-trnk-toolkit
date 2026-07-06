@@ -1,6 +1,7 @@
 #if UNITY_EDITOR
 using UnityEditor;
 #if UNITY_6000_3_OR_NEWER
+using System.Collections.Generic;
 using UnityEditor.Toolbars;
 #endif
 #if UNITY_2020_1_OR_NEWER
@@ -20,8 +21,8 @@ namespace TRnK.Toolkit
         private const float MinTimeScale = 0f;
         private static float MaxTimeScale => Mathf.Max(10f, (float)TRnKSettings.GetOrCreate().timeScaleMax);
 
-        private static bool installed;
 #if !UNITY_6000_3_OR_NEWER
+        private static bool installed;
         private static VisualElement rootContainer;
         private static Slider timeSlider;
         private static Button resetButton;
@@ -46,51 +47,33 @@ namespace TRnK.Toolkit
         }
 
 #if UNITY_6000_3_OR_NEWER
-        private static MainToolbarSlider s_unity6000Slider;
-        private static System.Reflection.FieldInfo s_sliderFieldInfo;
+        private const string ToolbarElementId = "TRnK.Toolkit/Time Scale";
 
-        [MainToolbarElement("TRnK.Toolkit/Time Scale", defaultDockPosition = MainToolbarDockPosition.Left)]
-        public static MainToolbarElement CreateMainToolbarElement()
+        // The factory is re-invoked by MainToolbar.Refresh(ToolbarElementId), so it must
+        // build the elements from current state and hold no element instances.
+        // Returning IEnumerable groups the slider and reset button into one docked unit.
+        [MainToolbarElement(ToolbarElementId, defaultDockPosition = MainToolbarDockPosition.Left)]
+        public static IEnumerable<MainToolbarElement> CreateMainToolbarElement()
         {
             LoadTimeManager();
             float v = GetCurrentTimeScale();
             var content = new MainToolbarContent("Time Scale");
-            s_unity6000Slider = new MainToolbarSlider(content, v, GetMin(), GetMax(), newVal =>
-            {
-                SetTimeScale(newVal);
-            });
-            s_unity6000Slider.populateContextMenu = menu =>
-                menu.AppendAction("Reset (1.0)", _ => { ResetToDefault(); SyncSliderDisplay(); });
-            ApplyUnity6000Visibility();
-            return s_unity6000Slider;
-        }
-
-        private static void ApplyUnity6000Visibility()
-        {
-            if (s_unity6000Slider == null) return;
-            bool hidden = false;
-            try { hidden = TRnKSettings.GetOrCreate().hideToolbar; } catch { }
-            s_unity6000Slider.displayed = !hidden;
-            s_unity6000Slider.enabled = !hidden;
-        }
-
-        // Updates the slider's visual position to reflect an external time scale change.
-        private static void SyncSliderDisplay()
-        {
-            if (s_unity6000Slider == null) return;
-            try
-            {
-                if (s_sliderFieldInfo == null)
-                    s_sliderFieldInfo = typeof(MainToolbarSlider).GetField("m_Slider", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-                var inner = s_sliderFieldInfo?.GetValue(s_unity6000Slider) as EditorToolbarSlider;
-                if (inner != null)
+            var slider = new MainToolbarSlider(content, v, GetMin(), GetMax(), SetTimeScale);
+            slider.populateContextMenu = menu =>
+                menu.AppendAction("Reset (1.0)", _ =>
                 {
-                    inner.lowValue = GetMin();
-                    inner.highValue = GetMax();
-                    inner.SetValueWithoutNotify(GetCurrentTimeScale());
-                }
-            }
-            catch { }
+                    ResetToDefault();
+                    MainToolbar.Refresh(ToolbarElementId);
+                });
+            yield return slider;
+
+            var resetIcon = ToolbarUtils.GetBestIcon("d_Refresh", "Refresh", "TreeEditor.Refresh", "d_RotateTool", "RotateTool");
+            var resetContent = new MainToolbarContent(resetIcon, "Reset Time Scale (1.0)");
+            yield return new MainToolbarButton(resetContent, () =>
+            {
+                ResetToDefault();
+                MainToolbar.Refresh(ToolbarElementId);
+            });
         }
 #endif
 
@@ -359,17 +342,16 @@ namespace TRnK.Toolkit
         {
             // Called when project settings change to update slider bounds and clamp current
             float newMax = MaxTimeScale;
-#if !UNITY_6000_3_OR_NEWER
+            lastAppliedTimeScale = Mathf.Clamp(lastAppliedTimeScale, MinTimeScale, newMax);
+#if UNITY_6000_3_OR_NEWER
+            MainToolbar.Refresh(ToolbarElementId);
+#else
             if (timeSlider != null)
             {
                 timeSlider.highValue = newMax;
                 timeSlider.lowValue = MinTimeScale;
-                float clamped = Mathf.Clamp(lastAppliedTimeScale, MinTimeScale, newMax);
-                lastAppliedTimeScale = clamped;
-                timeSlider.SetValueWithoutNotify(clamped);
+                timeSlider.SetValueWithoutNotify(lastAppliedTimeScale);
             }
-#endif
-#if !UNITY_6000_3_OR_NEWER
             if (valueLabel != null) valueLabel.text = FormatValue(lastAppliedTimeScale);
 #endif
             ApplyTimeScaleRuntimeOnly();
@@ -407,9 +389,9 @@ namespace TRnK.Toolkit
 
         private static void UpdateExternalSync()
         {
+#if !UNITY_6000_3_OR_NEWER
             if (!installed) return;
 
-#if !UNITY_6000_3_OR_NEWER
             // Self-heal: toolbar root can be rebuilt and drop our VisualElement.
             if (rootContainer == null || rootContainer.parent == null)
             {
@@ -429,7 +411,7 @@ namespace TRnK.Toolkit
             {
                 lastAppliedTimeScale = ext;
 #if UNITY_6000_3_OR_NEWER
-                SyncSliderDisplay();
+                MainToolbar.Refresh(ToolbarElementId);
 #else
                 if (timeSlider != null) timeSlider.SetValueWithoutNotify(ext);
                 if (valueLabel != null) valueLabel.text = FormatValue(ext);
@@ -497,9 +479,8 @@ namespace TRnK.Toolkit
         internal static void ApplyPreferenceChange(bool enabled)
         {
 #if UNITY_6000_3_OR_NEWER
-            // Unity 6.3+ uses MainToolbarElement integration; the element polls hideToolbar itself.
-            installed = enabled;
-            ApplyUnity6000Visibility();
+            // Unity 6.3+: toolbar element visibility is overlay-level, handled centrally.
+            MainToolbarActivator.SetDisplayed(enabled);
             return;
 #else
             if (enabled)
