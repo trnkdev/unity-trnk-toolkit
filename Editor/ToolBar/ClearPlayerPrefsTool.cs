@@ -48,7 +48,7 @@ namespace TRnK.Toolkit
 
         private static Texture2D unity6000Icon;
 
-        [MainToolbarElement(ToolbarElementId, defaultDockPosition = MainToolbarDockPosition.Right)]
+        [MainToolbarElement(ToolbarElementId, defaultDockPosition = MainToolbarDockPosition.Right, defaultDockIndex = 101)]
         public static MainToolbarElement CreateMainToolbarElement()
         {
             if (unity6000Icon == null)

@@ -84,7 +84,7 @@ namespace TRnK.Toolkit
 
         // The factory is re-invoked by MainToolbar.Refresh(ToolbarElementId), so it must
         // build the dropdown from current state and hold no element instance.
-        [MainToolbarElement(ToolbarElementId, defaultDockPosition = MainToolbarDockPosition.Right)]
+        [MainToolbarElement(ToolbarElementId, defaultDockPosition = MainToolbarDockPosition.Right, defaultDockIndex = 100)]
         public static MainToolbarElement CreateMainToolbarElement()
         {
             if (s_unity6000Icon == null)
