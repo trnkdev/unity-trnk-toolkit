@@ -17,7 +17,6 @@ namespace TRnK.Toolkit
         {
             "https://github.com/trnkdev/unity-trnk-signal.git",
             "https://github.com/trnkdev/unity-trnk-flow.git",
-            "https://github.com/trnkdev/unity-trnk-serializer.git",
             "https://github.com/trnkdev/unity-trnk-big-number.git",
             "https://github.com/trnkdev/unity-trnk-nav.git",
             "https://github.com/trnkdev/unity-trnk-spreadsheets.git",

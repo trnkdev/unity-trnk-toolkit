@@ -42,7 +42,6 @@ https://github.com/trnkdev/unity-trnk-toolkit.git
 TRnK.Toolkit is part of a suite of Unity packages:
 
 - **[TRnK Timer](https://github.com/trnkdev/unity-trnk-timer)**: PlayerLoop-driven countdown and stopwatch timers.
-- **[TRnK Serializer](https://github.com/trnkdev/unity-trnk-serializer)**: Save/load and data serialization powered by Newtonsoft.Json.
 - **[TRnK Signal](https://github.com/trnkdev/unity-trnk-signal)**: Type-safe event/signal bus with filters and priorities.
 - **[TRnK Flow](https://github.com/trnkdev/unity-trnk-flow)**: Lightweight state machine and transition flow helpers.
 - **[TRnK Nav](https://github.com/trnkdev/unity-trnk-nav)**: Navigation with Physics2D grid pathfinding and BoardGrid systems.

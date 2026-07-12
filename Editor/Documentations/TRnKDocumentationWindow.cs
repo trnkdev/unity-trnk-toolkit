@@ -183,7 +183,6 @@ namespace TRnK.Toolkit
                         DocCategory.EditorTools => "Editor Tools",
                         DocCategory.TRnKSignal => "TRnK Signal",
                         DocCategory.TRnKFlow => "TRnK Flow",
-                        DocCategory.TRnKSerializer => "TRnK Serializer",
                         DocCategory.TRnKTimer => "TRnK Timer",
                         _ => c.ToString()
                     };
@@ -326,7 +325,6 @@ namespace TRnK.Toolkit
                         DocCategory.EditorTools => "Editor Tools",
                         DocCategory.TRnKSignal => "TRnK Signal",
                         DocCategory.TRnKFlow => "TRnK Flow",
-                        DocCategory.TRnKSerializer => "TRnK Serializer",
                         DocCategory.TRnKTimer => "TRnK Timer",
                         var c => c.ToString()
                     };
@@ -398,7 +396,6 @@ namespace TRnK.Toolkit
                         DocCategory.EditorTools => "Editor Tools",
                         DocCategory.TRnKSignal => "TRnK Signal",
                         DocCategory.TRnKFlow => "TRnK Flow",
-                        DocCategory.TRnKSerializer => "TRnK Serializer",
                         DocCategory.TRnKTimer => "TRnK Timer",
                         _ => cat.ToString()
                     };
@@ -420,7 +417,6 @@ namespace TRnK.Toolkit
                             DocCategory.EditorTools => "Editor Tools",
                             DocCategory.TRnKSignal => "TRnK Signal",
                             DocCategory.TRnKFlow => "TRnK Flow",
-                            DocCategory.TRnKSerializer => "TRnK Serializer",
                             DocCategory.TRnKTimer => "TRnK Timer",
                             _ => e.Category.ToString()
                         };
@@ -1165,7 +1161,6 @@ namespace TRnK.Toolkit
             DocCategory.EditorTools => "◧",
             DocCategory.TRnKSignal => "◯",
             DocCategory.TRnKFlow => "↻",
-            DocCategory.TRnKSerializer => "≡",
             DocCategory.TRnKTimer => "⏱",
             _ => "•"
         };
