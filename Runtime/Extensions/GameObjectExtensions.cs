@@ -1,3 +1,4 @@
+using System;
 using TRnK.ColorPalette;
 using TRnK.Logger;
 using UnityEngine;
@@ -7,6 +8,7 @@ namespace TRnK.Extensions
     public static class GameObjectExtensions
     {
         private const int UnityLayerCount = 32;
+
         /// <summary>Gets or adds a component of type T to the specified MonoBehaviour.</summary>
         public static T GetOrAdd<T>(this MonoBehaviour monoBehaviour) where T : Component
         {
@@ -92,6 +94,21 @@ namespace TRnK.Extensions
         public static GameObject[] GetChildrenInLayerRecursive(this GameObject gameObject, LayerMask layer, bool includeInactive = false)
         {
             return gameObject.transform.GetChildrenInLayerRecursive(layer, includeInactive);
+        }
+
+        /// <summary>Calls the specified action on the next frame.</summary>
+        public static async void CallDeferred(this MonoBehaviour owner, Action action)
+        {
+            try
+            {
+                await Awaitable.NextFrameAsync(owner.destroyCancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+
+            action?.Invoke();
         }
     }
 }
