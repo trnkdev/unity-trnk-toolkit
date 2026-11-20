@@ -1,3 +1,14 @@
+## [2.8.1] - 2026-11-21
+
+### Editor Tools
+
+- Scene Switcher: Play with a startup scene no longer closes your additive scenes. Unity's `playModeStartScene` does the switch; the extra manual scene opening is removed.
+- Font Replacer: scenes you already had open are marked dirty instead of saved, so your other unsaved edits there aren't saved with them.
+- Sprite Animator preview: stopping or deselecting puts back the sprite from before the preview, so previewing never leaves the scene changed.
+- Game Screenshot: only refreshes the AssetDatabase when the screenshot is saved inside `Assets`.
+
+---
+
 ## [2.8.0] - 2026-11-20
 
 ### New Extensions

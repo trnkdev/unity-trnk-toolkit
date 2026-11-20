@@ -17,6 +17,8 @@ namespace TRnK.Components
             EditorUtility.SetDirty(sr);
         }
 
+        protected override Sprite GetPreviewSprite() => ((SpriteAnimator)target).GetComponent<SpriteRenderer>().sprite;
+
         protected override void SetPreviewSprite(Sprite sprite)
         {
             var sr = ((SpriteAnimator)target).GetComponent<SpriteRenderer>();

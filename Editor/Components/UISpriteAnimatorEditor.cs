@@ -42,6 +42,8 @@ namespace TRnK.Components
             EditorUtility.SetDirty(img);
         }
 
+        protected override Sprite GetPreviewSprite() => ((UISpriteAnimator)target).GetComponent<Image>().sprite;
+
         protected override void SetPreviewSprite(Sprite sprite)
         {
             var img = ((UISpriteAnimator)target).GetComponent<Image>();

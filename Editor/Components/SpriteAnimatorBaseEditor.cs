@@ -50,6 +50,7 @@ namespace TRnK.Components
 
         private bool _isPreviewPlaying;
         private Sprite[] _previewSprites;
+        private Sprite _spriteBeforePreview;
         private int _previewCurrentFrame;
         private bool _previewReversed;
         private float _previewTimer;
@@ -93,7 +94,7 @@ namespace TRnK.Components
         protected override void OnDisable()
         {
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            StopPreview(false);
+            StopPreview();
             _tree?.Dispose();
             _tree = null;
             base.OnDisable();
@@ -128,7 +129,7 @@ namespace TRnK.Components
         protected virtual void OnDisable()
         {
             EditorApplication.playModeStateChanged -= OnPlayModeStateChanged;
-            StopPreview(false);
+            StopPreview();
         }
 #endif
 
@@ -562,6 +563,7 @@ namespace TRnK.Components
         // --- Editor preview controls ---
 
         protected virtual void SetSprite0AsPreview(Sprite sprite) { }
+        protected virtual Sprite GetPreviewSprite() => null;
         protected virtual void SetPreviewSprite(Sprite sprite) { }
 
         private void DrawPreviewControls()
@@ -611,6 +613,7 @@ namespace TRnK.Components
             _previewTimer = 0f;
             _previewLastTime = EditorApplication.timeSinceStartup;
             _isPreviewPlaying = true;
+            _spriteBeforePreview = GetPreviewSprite();
 
             EditorApplication.update += OnEditorUpdate;
 
@@ -618,20 +621,20 @@ namespace TRnK.Components
                 SetPreviewSprite(_previewSprites[0]);
         }
 
-        private void StopPreview(bool resetSprite = true)
+        // Puts back the sprite from before the preview, so previewing never leaves the scene changed
+        private void StopPreview()
         {
             if (!_isPreviewPlaying) return;
             _isPreviewPlaying = false;
             EditorApplication.update -= OnEditorUpdate;
-            if (resetSprite && target != null && _previewSprites is { Length: > 0 } && _previewSprites[0] != null)
-                SetPreviewSprite(_previewSprites[0]);
+            if (target != null) SetPreviewSprite(_spriteBeforePreview);
             _previewSprites = null;
         }
 
         private void OnPlayModeStateChanged(PlayModeStateChange state)
         {
             if (state != PlayModeStateChange.ExitingEditMode) return;
-            StopPreview(false);
+            StopPreview();
             Repaint();
         }
 

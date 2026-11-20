@@ -37,10 +37,6 @@ namespace TRnK.Toolkit
         private static VisualElement containerRef;
 
         private static string startupScenePath;
-        private static bool playSwitched;
-        private static string originalSceneBeforePlay;
-        private const string SessionOriginalSceneKey = "TRnK.Toolkit:OriginalSceneBeforePlay";
-        private const string SessionPlaySwitchedKey = "TRnK.Toolkit:PlaySwitchedFlag";
 
         private const string PrefActivateLoadedAdditive = "TRnK.Toolkit:ActivateLoadedAdditiveOnSelect";
         #endregion
@@ -54,16 +50,6 @@ namespace TRnK.Toolkit
                 try { if (!TRnKSettings.GetOrCreate().hideToolbar) EditorApplication.update += TryInstall; } catch { EditorApplication.update += TryInstall; }
 #endif
                 LoadStartupPrefs();
-                // Recover persisted session info (domain reload safety)
-                if (string.IsNullOrEmpty(originalSceneBeforePlay))
-                {
-                    var stored = SessionState.GetString(SessionOriginalSceneKey, string.Empty);
-                    if (!string.IsNullOrEmpty(stored)) originalSceneBeforePlay = stored;
-                }
-                if (!playSwitched)
-                {
-                    playSwitched = SessionState.GetBool(SessionPlaySwitchedKey, false);
-                }
             };
             EditorBuildSettings.sceneListChanged += RefreshSceneList;
             EditorSceneManager.sceneOpened += (_, __) => UpdateSelectionVisual();
@@ -71,7 +57,6 @@ namespace TRnK.Toolkit
 #if UNITY_2021_1_OR_NEWER
             EditorSceneManager.activeSceneChangedInEditMode += (_, __) => UpdateSelectionVisual();
 #endif
-            EditorApplication.playModeStateChanged += OnPlayModeStateChanged;
 #if !UNITY_6000_3_OR_NEWER
             EditorApplication.update += LegacySelfHeal;
 #endif
@@ -838,41 +823,6 @@ namespace TRnK.Toolkit
             }
             catch { }
             return result;
-        }
-
-        private static void OnPlayModeStateChanged(PlayModeStateChange state)
-        {
-            switch (state)
-            {
-                case PlayModeStateChange.ExitingEditMode:
-                    if (!HasStartupScene()) { playSwitched = false; SessionState.SetBool(SessionPlaySwitchedKey, false); return; }
-                    if (AssetDatabase.LoadAssetAtPath<SceneAsset>(startupScenePath) == null) { startupScenePath = string.Empty; playSwitched = false; SessionState.SetBool(SessionPlaySwitchedKey, false); return; }
-                    var active = SceneManager.GetActiveScene();
-                    if (string.Equals(active.path, startupScenePath, StringComparison.OrdinalIgnoreCase)) { playSwitched = false; SessionState.SetBool(SessionPlaySwitchedKey, false); return; }
-                    originalSceneBeforePlay = active.path;
-                    SessionState.SetString(SessionOriginalSceneKey, originalSceneBeforePlay);
-                    if (!EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo())
-                    {
-                        EditorApplication.isPlaying = false; playSwitched = false; originalSceneBeforePlay = null; SessionState.EraseString(SessionOriginalSceneKey); SessionState.SetBool(SessionPlaySwitchedKey, false); return;
-                    }
-                    var opened = EditorSceneManager.OpenScene(startupScenePath);
-                    SceneManager.SetActiveScene(opened);
-                    playSwitched = true; SessionState.SetBool(SessionPlaySwitchedKey, true);
-                    break;
-                case PlayModeStateChange.EnteredEditMode:
-                    if ((playSwitched || SessionState.GetBool(SessionPlaySwitchedKey, false)) && !string.IsNullOrEmpty(originalSceneBeforePlay) && System.IO.File.Exists(originalSceneBeforePlay))
-                    {
-                        var current = SceneManager.GetActiveScene();
-                        if (!string.Equals(current.path, originalSceneBeforePlay, StringComparison.OrdinalIgnoreCase))
-                        {
-                            var restored = EditorSceneManager.OpenScene(originalSceneBeforePlay);
-                            SceneManager.SetActiveScene(restored);
-                        }
-                    }
-                    playSwitched = false; SessionState.SetBool(SessionPlaySwitchedKey, false);
-                    originalSceneBeforePlay = null; SessionState.EraseString(SessionOriginalSceneKey);
-                    break;
-            }
         }
     }
 }

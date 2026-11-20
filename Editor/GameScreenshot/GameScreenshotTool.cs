@@ -227,7 +227,7 @@ namespace TRnK.Toolkit
             {
                 var finalPath = Path.Combine(directory, BuildFileName(_cameraWidth, _cameraHeight));
                 CaptureFromCameraToPath(_targetCamera, _cameraWidth, _cameraHeight, finalPath);
-                AssetDatabase.Refresh();
+                RefreshIfInAssets(finalPath);
                 if (_settings.revealOnSave) RevealInExplorerIfExists(finalPath);
             }
         }
@@ -267,6 +267,13 @@ namespace TRnK.Toolkit
                 rt.Release();
                 DestroyImmediate(rt);
             }
+        }
+
+        // Only a file inside Assets needs importing; the default Screenshots folder sits outside it
+        private static void RefreshIfInAssets(string path)
+        {
+            if (Path.GetFullPath(path).StartsWith(Path.GetFullPath(Application.dataPath), StringComparison.OrdinalIgnoreCase))
+                AssetDatabase.Refresh();
         }
 
         private static string EnsureScreenshotsFolder()
@@ -323,7 +330,7 @@ namespace TRnK.Toolkit
                 {
                     File.WriteAllBytes(filePath, tex.EncodeToPNG());
                     Debug.Log($"{LogPrefix} Captured → {filePath}");
-                    AssetDatabase.Refresh();
+                    RefreshIfInAssets(filePath);
                     if (revealOnSave)
                         EditorUtility.RevealInFinder(filePath);
                 }

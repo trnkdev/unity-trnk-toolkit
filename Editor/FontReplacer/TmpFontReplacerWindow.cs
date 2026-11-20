@@ -1112,7 +1112,9 @@ namespace TRnK.Toolkit
                         if (totalReplaced > before) dirty = true;
                     }
 
-                if (dirty) EditorSceneManager.SaveScene(scene);
+                // An already open scene may hold the user's unsaved edits, so it's left dirty for them to save
+                if (dirty && alreadyLoaded) EditorSceneManager.MarkSceneDirty(scene);
+                else if (dirty) EditorSceneManager.SaveScene(scene);
                 if (!alreadyLoaded) EditorSceneManager.CloseScene(scene, true);
             }
 
