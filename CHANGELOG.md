@@ -1,3 +1,35 @@
+## [2.7.0] - 2026-11-20
+
+### Breaking Changes
+
+- Remove pooling (`Pool<T>`, `PoolableObject`, `PoolableParticle`, `ReleaseAfterLifetime`, namespace `TRnK.Pooling`). It moves to a TRnK Framework module.
+- Remove `Utils.GetWaitForSecondsRealtime`; use `new WaitForSecondsRealtime(seconds)`. Its cached instance was shared between coroutines and handed one its end time to another, so a 1 s wait could take 1.5 s.
+- Remove `Coroutine.AsTask(owner)`; use `IEnumerator.AsTask(owner)`. A Coroutine handle can't tell when it was stopped or threw, so its Task could wait forever.
+- `IEnumerator.AsTask` runs apart from its owner, so the owner's `StopAllCoroutines` no longer stops it. Pass the new optional `CancellationToken` to stop it.
+- Declare the `com.unity.ugui` dependency (TMP and UI components need it).
+
+### Bug Fixes
+
+- `ScrollingMeshRenderer` / `ScrollingSpriteRenderer` no longer leak a material per instance: reading `.material` already made a copy, which was then copied again and never destroyed.
+- `IEnumerator.AsTask` always settles its Task, so an `await` on it can't freeze:
+  - Canceled when the owner is destroyed or deactivated (itself or a parent), even during a long `WaitForSeconds`; the routine runs no further.
+  - Canceled with a warning, instead of Unity's coroutine error, when the owner is already inactive.
+  - Faulted by an exception in a nested routine (it used to stay pending).
+  - Canceled if the internal runner is destroyed, for example by a game reset.
+- `Forget(onException)` runs the handler on the main thread, so it can use the Unity API, even when `Forget` is called from a worker thread.
+- `ToBigNumber` moves to the next suffix when rounding reaches 1000: `999_999` shows `1M`, not `1000K`.
+- `SpriteAnimator` / `UISpriteAnimator`:
+  - Once mode no longer fires the last frame's events twice.
+  - The start frame's events fire when playback starts; frame 0 used to be skipped on the first cycle.
+  - `Play()` keeps the Inspector loop mode (it switched to Once); `Play(loopMode)` still replaces it.
+  - Playing again after a finished Once starts from the first frame; it used to end again on the last frame without playing anything.
+  - `Restart()` always starts at frame 0, even with Start At Random Frame on.
+  - Add a read-only `LoopMode` property.
+  - After a long hitch, frames the catch-up cap skipped are dropped instead of fast-forwarding 8 per update.
+- Update `Docs` and `TRnKDocDatabase` to match, and remove `PlayOneShot()` from `COMPONENTS.md` (it doesn't exist).
+
+---
+
 ## [2.6.0] - 2026-11-20
 
 ### Time Formatting

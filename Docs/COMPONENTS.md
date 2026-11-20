@@ -16,8 +16,8 @@ Frame-based sprite animation for `SpriteRenderer`. Pauses automatically when the
 
 ```csharp
 var animator = GetComponent<SpriteAnimator>();
-animator.Play();
-animator.PlayOneShot();          // Once mode, then stops
+animator.Play();                 // Loop mode from the Inspector
+animator.Play(SpriteAnimatorLoopMode.Once); // Replaces the Inspector loop mode
 animator.Restart();
 animator.Stop();
 animator.SetFrameRate(24f);
@@ -28,6 +28,7 @@ animator.SetFrameRate(0f);       // Freezes on current frame
 bool playing = animator.IsPlaying;
 int frame    = animator.CurrentFrame;
 int total    = animator.FrameCount;
+var mode     = animator.LoopMode;  // what Play() uses
 ```
 
 ### UISpriteAnimator

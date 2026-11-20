@@ -27,6 +27,7 @@ namespace TRnK.Components
         }
 
         private const int MaxCatchUpStepsPerUpdate = 8;
+        private const int NoFrame = -1;
 
         [Tooltip("The sprites to animate through.")]
         [SerializeField] protected Sprite[] _sprites;
@@ -61,6 +62,8 @@ namespace TRnK.Components
 
         protected float _frameTimer = 0f;
         protected int _spriteCount;
+        private int _eventsFiredFrame = NoFrame;
+        private bool _cycleFinished;
         protected float FrameDuration
         {
             get
@@ -73,6 +76,7 @@ namespace TRnK.Components
         public bool IsPlaying => _isPlaying;
         public int CurrentFrame => _currentFrame;
         public int FrameCount => _spriteCount;
+        public SpriteAnimatorLoopMode LoopMode => _loopMode;
 
         protected virtual void Awake()
         {
@@ -109,6 +113,8 @@ namespace TRnK.Components
 
             int catchUpSteps = Mathf.Min((int)(_frameTimer / frameDuration), MaxCatchUpStepsPerUpdate);
             _frameTimer -= catchUpSteps * frameDuration;
+            // After a hitch, drop what the cap skipped instead of fast-forwarding through it over the next updates
+            if (_frameTimer >= frameDuration) _frameTimer %= frameDuration;
 
             for (int i = 0; i < catchUpSteps; i++)
             {
@@ -132,21 +138,13 @@ namespace TRnK.Components
 
         protected void NextFrame()
         {
-            if (!_isReversed)
+            _currentFrame += _isReversed ? -1 : 1;
+            if (_currentFrame >= _spriteCount || _currentFrame < 0)
             {
-                _currentFrame++;
-                if (_currentFrame >= _spriteCount)
-                {
-                    HandleEndReached();
-                }
-            }
-            else
-            {
-                _currentFrame--;
-                if (_currentFrame < 0)
-                {
-                    HandleEndReached();
-                }
+                // Once stops on the frame it already showed, so that frame's events must not fire again
+                bool stopsHere = _loopMode == SpriteAnimatorLoopMode.Once;
+                HandleEndReached();
+                if (stopsHere) return;
             }
 
             UpdateSprite();
@@ -159,6 +157,7 @@ namespace TRnK.Components
             {
                 case SpriteAnimatorLoopMode.Once:
                     _currentFrame = _isReversed ? 0 : _spriteCount - 1;
+                    _cycleFinished = true;
                     Stop();
                     _onCycleComplete?.Invoke();
                     break;
@@ -179,6 +178,7 @@ namespace TRnK.Components
 
         protected void CheckFrameEvents()
         {
+            _eventsFiredFrame = _currentFrame;
             if (_frameEvents == null) return;
 
             for (int i = 0; i < _frameEvents.Length; i++)
@@ -195,8 +195,11 @@ namespace TRnK.Components
             }
         }
 
-        /// <summary>Play the animation with the given loop mode. Sets and applies the loop mode immediately (like Rigidbody.isKinematic). Defaults to Once.</summary>
-        public virtual void Play(SpriteAnimatorLoopMode loopMode = SpriteAnimatorLoopMode.Once)
+        /// <summary>Play the animation with the loop mode set in the Inspector.</summary>
+        public void Play() => Play(_loopMode);
+
+        /// <summary>Play the animation with the given loop mode, which replaces the Inspector value.</summary>
+        public virtual void Play(SpriteAnimatorLoopMode loopMode)
         {
             _loopMode = loopMode;
 
@@ -210,15 +213,21 @@ namespace TRnK.Components
                 Log.Warn($"[SpriteAnimator] PingPong mode requires at least 2 sprites on '{gameObject.name}'; OnCycleComplete will fire every frame.");
 
             _isReversed = false;
+            bool starting = !_isPlaying;
 
-            if (_startAtRandomFrame && !_isPlaying)
+            // A finished Once cycle starts over instead of ending again on its last frame
+            if (starting && (_startAtRandomFrame || _cycleFinished))
             {
-                _currentFrame = _sprites.RandIndex();
+                _currentFrame = _startAtRandomFrame ? _sprites.RandIndex() : 0;
                 UpdateSprite();
             }
 
+            _cycleFinished = false;
             _isPlaying = true;
             _frameTimer = 0f;
+
+            // The start frame is already showing, so fire its events once; resuming after Stop() doesn't fire them again
+            if (starting && _eventsFiredFrame != _currentFrame) CheckFrameEvents();
         }
 
         /// <summary>Stop the animation.</summary>
@@ -234,8 +243,13 @@ namespace TRnK.Components
             _currentFrame = 0;
             _frameTimer = 0f;
             _isReversed = false;
+            _cycleFinished = false;
             UpdateSprite();
+
+            // Already marked playing, so Play() keeps frame 0 instead of a random start; frame 0's events fire here
+            _isPlaying = _spriteCount > 0;
             Play(_loopMode);
+            CheckFrameEvents();
         }
 
         /// <summary>Set the frame rate of the animation.</summary>
@@ -265,6 +279,7 @@ namespace TRnK.Components
             }
             _currentFrame = frameIndex;
             _frameTimer = 0f;
+            _cycleFinished = false;
             UpdateSprite();
         }
 

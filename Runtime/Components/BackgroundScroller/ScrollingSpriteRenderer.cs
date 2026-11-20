@@ -12,7 +12,8 @@ namespace TRnK.Components
         private void Awake()
         {
             var spriteRenderer = GetComponent<SpriteRenderer>();
-            _material = spriteRenderer.material = Instantiate(spriteRenderer.material);
+            // Reading .material already clones it, so copy the shared one to keep a single owned instance
+            _material = spriteRenderer.material = Instantiate(spriteRenderer.sharedMaterial);
         }
 
         protected override void ApplyOffset(Vector2 offset)

@@ -17,13 +17,6 @@ using TRnK.Utilities;
 yield return Utils.GetWaitForSeconds(1.5f);
 ```
 
-#### GetWaitForSecondsRealtime()
-
-```csharp
-// Get cached WaitForSecondsRealtime for unscaled time
-yield return Utils.GetWaitForSecondsRealtime(2.0f);
-```
-
 ### TransformUtils
 
 #### GetAngleFromVector()

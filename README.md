@@ -12,7 +12,7 @@ Navigate to each section below for complete API reference and usage examples:
 
 | Category         | Description                                                 | Link                                   |
 | ---------------- | ----------------------------------------------------------- | -------------------------------------- |
-| **Core**         | Foundational systems: singletons, pooling, and utilities    | [📖 Core](Docs/CORE.md)                |
+| **Core**         | Foundational systems: singletons, color palette, logging    | [📖 Core](Docs/CORE.md)                |
 | **Components**   | MonoBehaviour components for common game functionality      | [📖 Components](Docs/COMPONENTS.md)    |
 | **Extensions**   | Extension methods for Unity and C# types                    | [📖 Extensions](Docs/EXTENSIONS.md)    |
 | **Utilities**    | Static utility classes and helper functions                 | [📖 Utilities](Docs/UTILITIES.md)      |

@@ -20,20 +20,5 @@ namespace TRnK.Utilities
 
             return s_waitForSecondsDictionary[waitSeconds];
         }
-
-        private static readonly Dictionary<float, WaitForSecondsRealtime> s_waitForSecondsRealtimeDictionary = new();
-
-        /// <summary>Retrieve a cached WaitForSecondsRealtime stored in a dictionary to avoid new allocation of memory.</summary>
-        public static WaitForSecondsRealtime GetWaitForSecondsRealtime(float waitSeconds)
-        {
-            if (s_waitForSecondsRealtimeDictionary.TryGetValue(waitSeconds, out var wait))
-            {
-                return wait;
-            }
-
-            s_waitForSecondsRealtimeDictionary.Add(waitSeconds, new WaitForSecondsRealtime(waitSeconds));
-
-            return s_waitForSecondsRealtimeDictionary[waitSeconds];
-        }
     }
 }

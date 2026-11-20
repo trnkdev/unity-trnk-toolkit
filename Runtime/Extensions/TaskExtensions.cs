@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Threading;
 using System.Threading.Tasks;
 using TRnK.Logger;
 using UnityEngine;
@@ -15,23 +16,31 @@ namespace TRnK.Extensions
 
     public static class TaskExtensions
     {
-        /// <summary>Extension method to safely ignore a Task and handle exceptions.</summary>
-        public static void Forget(this Task task, Action<Exception> onException = null)
-        {
-            // Handle synchronously completed tasks immediately
-            if (task.IsCompleted)
-            {
-                if (task.Exception != null)
-                    HandleException(task.Exception.GetBaseException(), onException);
-                return;
-            }
+        private static SynchronizationContext s_mainContext;
+        private static int s_mainThreadId;
 
-            // Handle future completion - NO ExecuteSynchronously in Unity
-            task.ContinueWith(t =>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void CaptureMainThread()
+        {
+            s_mainContext = SynchronizationContext.Current;
+            s_mainThreadId = Thread.CurrentThread.ManagedThreadId;
+        }
+
+        /// <summary>Runs a Task without awaiting it. Exceptions go to onException on the main thread, or to Log.Error; cancellation is ignored.</summary>
+        public static async void Forget(this Task task, Action<Exception> onException = null)
+        {
+            try
             {
-                if (t.Exception != null)
-                    HandleException(t.Exception.GetBaseException(), onException);
-            }, TaskContinuationOptions.OnlyOnFaulted);
+                await task;
+            }
+            catch (Exception exception)
+            {
+                // Called from a worker thread there is no Unity context to resume on, so hop to the main thread for the handler
+                if (s_mainContext != null && Thread.CurrentThread.ManagedThreadId != s_mainThreadId)
+                    s_mainContext.Post(_ => HandleException(exception, onException), null);
+                else
+                    HandleException(exception, onException);
+            }
         }
 
         /// <summary>Handles exceptions by invoking the provided callback or logging them.</summary>

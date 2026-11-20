@@ -13,7 +13,8 @@ namespace TRnK.Components
         private void Awake()
         {
             _meshRenderer = GetComponent<MeshRenderer>();
-            _material = _meshRenderer.material = Instantiate(_meshRenderer.material);
+            // Reading .material already clones it, so copy the shared one to keep a single owned instance
+            _material = _meshRenderer.material = Instantiate(_meshRenderer.sharedMaterial);
         }
 
         protected override void ApplyOffset(Vector2 offset)

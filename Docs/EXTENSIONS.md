@@ -339,13 +339,10 @@ Coroutine conditional = this.StartCoroutineWhen(myCoroutine, () => isReady);
 // Parallel execution
 Coroutine parallel = this.StartCoroutineParallel(coroutineA, coroutineB, coroutineC);
 
-// Convert Coroutine to Task for async/await support
-Task task = StartCoroutine(myCoroutine).AsTask(this);
-await task;
-
-// Convert IEnumerator to Task
-Task enumTask = myEnumerator.AsTask(this);
-await enumTask;
+// Run an IEnumerator as a Task. It always settles: finished, faulted by an exception anywhere in it,
+// or canceled when the owner is destroyed or deactivated (or by the optional token)
+await myEnumerator.AsTask(this);
+await myEnumerator.AsTask(this, cancellationToken);
 
 // Run multiple coroutines concurrently and wait for all
 await this.WhenAll(coroutineA, coroutineB, coroutineC);
@@ -365,7 +362,7 @@ using TRnK.Logger;
 
 // Fire-and-forget tasks
 myAsyncTask.Forget();
-myAsyncTask.Forget(ex => Log.Error($"Task failed: {ex}"));
+myAsyncTask.Forget(ex => Log.Error($"Task failed: {ex}")); // handler runs on the main thread
 
 // Convert Task to Coroutine using YieldTask
 IEnumerator WebRequestExample()

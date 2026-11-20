@@ -15,6 +15,8 @@ namespace TRnK.Extensions
 
     public static class BigNumberStyleExtensions
     {
+        private const int MaxRoundingDecimals = 28;
+
         private static readonly string[] s_compactSuffixes =
         {
             "K", "M", "B", "T",
@@ -54,6 +56,14 @@ namespace TRnK.Extensions
             int tier = 0;
             // Saturate at the largest suffix: stop dividing once we'd exceed the table.
             while (value >= 1000m && tier < suffixes.Length)
+            {
+                value /= 1000m;
+                tier++;
+            }
+
+            // Rounding can carry into the next tier: 999.96K would print "1000K" instead of "1M"
+            decimal rounded = Math.Round(value, Math.Min(decimalPlaces, MaxRoundingDecimals), MidpointRounding.AwayFromZero);
+            if (rounded >= 1000m && tier < suffixes.Length)
             {
                 value /= 1000m;
                 tier++;

@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Threading;
 using System.Threading.Tasks;
+using TRnK.Coroutines;
 using TRnK.Utilities;
 using UnityEngine;
 
@@ -81,46 +82,13 @@ namespace TRnK.Extensions
             yield return coroutine;
         }
 
-        /// <summary>Converts a Coroutine to a Task for await support.</summary>
-        public static Task AsTask(this Coroutine coroutine, MonoBehaviour mono)
+        /// <summary>Runs an IEnumerator as a Task: faulted by an exception anywhere in it, canceled if the owner is destroyed
+        /// or deactivated, or by the token. It runs apart from the owner, so the owner's StopAllCoroutines doesn't stop it.</summary>
+        public static Task AsTask(this IEnumerator coroutine, MonoBehaviour mono, CancellationToken cancellationToken = default)
         {
             if (coroutine == null) return Task.CompletedTask;
             if (mono == null) throw new ArgumentNullException(nameof(mono));
-
-            var tcs = new TaskCompletionSource<bool>();
-            mono.StartCoroutine(WaitForCoroutine(coroutine, tcs, mono.destroyCancellationToken));
-            return tcs.Task;
-        }
-
-        /// <summary>Converts an IEnumerator to a Task for await support.</summary>
-        public static Task AsTask(this IEnumerator coroutine, MonoBehaviour mono)
-        {
-            if (coroutine == null) return Task.CompletedTask;
-            if (mono == null) throw new ArgumentNullException(nameof(mono));
-
-            var tcs = new TaskCompletionSource<bool>();
-            mono.StartCoroutine(WaitForRoutine(coroutine, tcs, mono.destroyCancellationToken));
-            return tcs.Task;
-        }
-
-        /// <summary>Waits for a Coroutine to complete and sets the TaskCompletionSource result.</summary>
-        private static IEnumerator WaitForCoroutine(Coroutine coroutine, TaskCompletionSource<bool> tcs, CancellationToken cancellationToken)
-        {
-            if (cancellationToken.IsCancellationRequested)
-            {
-                tcs.SetCanceled();
-                yield break;
-            }
-
-            // yield return on a Coroutine suspends until that coroutine finishes — the correct way to wait.
-            // The previous polling loop (!coroutine.Equals(null)) never terminated because Unity does not
-            // null-out a Coroutine handle upon completion.
-            yield return coroutine;
-
-            if (cancellationToken.IsCancellationRequested)
-                tcs.SetCanceled();
-            else
-                tcs.SetResult(true);
+            return CoroutineTaskRunner.Run(mono, coroutine, cancellationToken);
         }
 
         /// <summary>Runs multiple coroutines concurrently.</summary>
@@ -149,46 +117,6 @@ namespace TRnK.Extensions
                 tasks[i] = routines[i].AsTask(mono);
             }
             return Task.WhenAny(tasks);
-        }
-
-        /// <summary>Converts an IEnumerator coroutine to a Task for await support.</summary>
-        private static IEnumerator WaitForRoutine(IEnumerator routine, TaskCompletionSource<bool> tcs, CancellationToken cancellationToken)
-        {
-            bool hasException = false;
-            Exception exception = null;
-
-            while (!cancellationToken.IsCancellationRequested && !hasException)
-            {
-                bool moveNext;
-                try
-                {
-                    moveNext = routine.MoveNext();
-                }
-                catch (Exception ex)
-                {
-                    exception = ex;
-                    hasException = true;
-                    break;
-                }
-
-                if (!moveNext)
-                    break;
-
-                yield return routine.Current;
-            }
-
-            if (hasException)
-            {
-                tcs.SetException(exception);
-            }
-            else if (cancellationToken.IsCancellationRequested)
-            {
-                tcs.SetCanceled();
-            }
-            else
-            {
-                tcs.SetResult(true);
-            }
         }
     }
 }

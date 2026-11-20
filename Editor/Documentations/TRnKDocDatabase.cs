@@ -502,174 +502,6 @@ TimerToken hb = this.Repeat(0.5f, PulseHeartIcon, useUnscaledTime: true);"
                 },
                 new TRnKDocEntry
                 {
-                    Title = "Pool<T>",
-                    Namespace = "TRnK.Pooling",
-                    Summary = "Deterministic prefab pool. Inherit PoolableObject and call Get() / Release() instead of Instantiate / Destroy.",
-                    Description = "Pool<T> manages a stack of inactive instances under an auto-created root transform. New and prewarmed instances live in an inactive staging GameObject until first Get() — so Awake, OnEnable, and OnDisable never fire on dormant pool items. Prewarm(N) pays Instantiate cost up-front to avoid first-spawn spikes. Get() applies the requested pose before activation so OnEnable observes the correct transform. Use Clear() for explicit cleanup; scene unload handles the rest.",
-                    Code =
-@"// Setup — auto-creates a [Pool] Bullet root
-_pool = new Pool<Bullet>(_bulletPrefab);
-_pool = new Pool<Bullet>(_bulletPrefab, capacity: 32, maxSize: 256);
-_pool = new Pool<Bullet>(_bulletPrefab, capacity: 32, maxSize: 256, root: _poolRoot);
-
-// Prewarm at boot — no lifecycle callbacks fire on prewarmed instances
-_pool.Prewarm(32);
-
-// Runtime — OnEnable observes the supplied pose
-Bullet b = _pool.Get(position, rotation);
-Bullet b = _pool.Get(position, rotation, parent);
-Bullet b = _pool.Get();          // at Vector3.zero
-Bullet b = _pool.Get(parent);    // at zero, reparented
-_pool.Release(b);
-_pool.Clear();",
-                    Tags = new[] { "Pool", "Get", "Release", "Prewarm", "Performance" },
-                    Category = DocCategory.Core,
-                    Members = new[]
-                    {
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Method,
-                            Signature = "Get()",
-                            Summary = "Gets an instance from the pool at Vector3.zero with no rotation.",
-                            Code =
-@"var bullet = _pool.Get();
-bullet.transform.SetPositionAndRotation(firePoint.position, firePoint.rotation);"
-                        },
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Method,
-                            Signature = "Get(Vector3 position, Quaternion rotation)",
-                            Summary = "Gets an instance placed at the given world position and rotation.",
-                            Code =
-@"Bullet b = _pool.Get(firePoint.position, firePoint.rotation);"
-                        },
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Method,
-                            Signature = "Get(Vector3 position, Quaternion rotation, Transform parent)",
-                            Summary = "Gets an instance placed at position/rotation and reparented under parent.",
-                            Code =
-@"var effect = _pool.Get(hit.point, Quaternion.identity, hitParent);"
-                        },
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Method,
-                            Signature = "Get(Transform parent)",
-                            Summary = "Gets an instance at Vector3.zero reparented under parent.",
-                            Code =
-@"var icon = _pool.Get(canvasRoot);"
-                        },
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Method,
-                            Signature = "Prewarm(int count)",
-                            Summary = "Instantiates count instances up-front into inactive staging. Clamps to maxSize. Awake, OnEnable, and OnDisable do NOT fire on prewarmed instances until first Get().",
-                            Code =
-@"private void Awake()
-{
-    _pool = new Pool<Bullet>(_bulletPrefab, capacity: 32, maxSize: 256);
-    _pool.Prewarm(32); // amortize Instantiate cost away from gameplay frames
-}"
-                        },
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Method,
-                            Signature = "Release(T instance)",
-                            Summary = "Returns the instance to the pool. Destroys it if the pool is at capacity.",
-                            Code =
-@"_pool.Release(bullet);"
-                        },
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Method,
-                            Signature = "Clear()",
-                            Summary = "Destroys all inactive instances and reclaims the stack's backing memory.",
-                            Code =
-@"void OnLevelUnload() => _pool.Clear();"
-                        },
-                    }
-                },
-                new TRnKDocEntry
-                {
-                    Title = "PoolableObject",
-                    Namespace = "TRnK.Pooling",
-                    Summary = "Abstract base for poolable MonoBehaviours. Provides self-release and active-state tracking.",
-                    Description = "Inherit from PoolableObject to make a MonoBehaviour usable with Pool<T>. Call Release() to return the instance to its pool, or Destroy it if not managed by a pool. Release() is idempotent — safe to call multiple times.",
-                    Code =
-@"public sealed class EnemyProjectile : PoolableObject
-{
-    private void OnCollisionEnter(Collision _)
-    {
-        Release(); // returns to pool, or Destroys if unmanaged
-    }
-}",
-                    Tags = new[] { "Pool", "Self-release" },
-                    Category = DocCategory.Core,
-                    Members = new[]
-                    {
-                        new DocMember
-                        {
-                            Kind = DocMemberKind.Method,
-                            Signature = "Release()",
-                            Summary = "Returns this object to its pool. Falls back to Destroy() if not managed by a pool. Idempotent.",
-                            Code =
-@"private void OnBecameInvisible()
-{
-    Release();
-}"
-                        },
-                    }
-                },
-                new TRnKDocEntry
-                {
-                    Title = "PoolableParticle",
-                    Namespace = "TRnK.Pooling",
-                    Summary = "Inherit to make a ParticleSystem poolable. Auto-releases back to pool when the particle stops.",
-                    Description = "Requires a ParticleSystem on the same GameObject. The stop action is forced to Callback and playOnAwake is disabled automatically. Override OnParticleSystemStopped() for custom teardown logic. Call Play() to start playback.",
-                    Code =
-@"public sealed class HitEffect : PoolableParticle { }
-
-// Usage — call Play() after Get() from the pool
-var effect = _hitPool.Get(hit.point, Quaternion.identity);
-effect.Play();
-// Auto-releases when the particle system stops",
-                    Tags = new[] { "Pool", "Particle", "VFX" },
-                    Category = DocCategory.Core,
-                    Members = new[]
-                    {
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "Play()",
-                            Summary = "Starts playback if the particle system is not already playing.",
-                            Code =
-@"var effect = _explosionPool.Get(transform.position, Quaternion.identity);
-effect.Play();" },
-                    }
-                },
-                new TRnKDocEntry
-                {
-                    Title = "ReleaseAfterLifetime",
-                    Namespace = "TRnK.Pooling",
-                    Summary = "Add to any poolable GameObject to auto-release it after a fixed duration. Configurable in the inspector.",
-                    Description = "Requires a PoolableObject on the same GameObject. Lifetime is reset on each OnEnable (i.e. each pool Get()). Supports scaled and unscaled time. Values <= 0 release on the next Update after activation.",
-                    Code =
-@"// Inspector-only setup is the common case.
-// Override at runtime when needed:
-var ral = bullet.GetComponent<ReleaseAfterLifetime>();
-ral.Lifetime = 2.5f;
-ral.UseUnscaledTime = false;",
-                    Tags = new[] { "Pool", "Lifetime", "Auto-release" },
-                    Category = DocCategory.Core,
-                    Members = new[]
-                    {
-                        new DocMember { Kind = DocMemberKind.Property, Signature = "Lifetime",
-                            Summary = "Duration in seconds before the object is released. Clamped to >= 0. Reset on each OnEnable.",
-                            Code = @"ral.Lifetime = 3f;" },
-                        new DocMember { Kind = DocMemberKind.Property, Signature = "UseUnscaledTime",
-                            Summary = "When true, the lifetime ticks with unscaled time — unaffected by Time.timeScale.",
-                            Code = @"ral.UseUnscaledTime = true; // survives pause" },
-                    }
-                },
-                new TRnKDocEntry
-                {
                     Title = "Swatch (Color Palette)",
                     Namespace = "TRnK.ColorPalette",
                     Summary = "Pre-defined color constants for consistent in-editor and in-game theming.",
@@ -764,7 +596,7 @@ catch (Exception e) { Log.Exception(e); }"
                     Description = "Loop modes: Once (stops on last frame), Loop (wraps back), PingPong (reverses). Add per-frame UnityEvent callbacks via the Frame Events inspector tab. OnCycleComplete fires at each cycle boundary.",
                     Code =
 @"var anim = GetComponent<SpriteAnimator>();
-anim.Play();                                       // Once mode (default)
+anim.Play();                                       // loop mode from the Inspector
 anim.Play(SpriteAnimatorLoopMode.Loop);            // explicit loop
 anim.Restart();
 anim.Stop();
@@ -776,6 +608,7 @@ anim.SetFrameRate(0f);    // freeze on current frame
 bool playing = anim.IsPlaying;
 int  frame   = anim.CurrentFrame;
 int  total   = anim.FrameCount;
+var  mode    = anim.LoopMode;
 
 anim.OnCycleComplete.AddListener(() => Debug.Log(""Cycle done!""));",
                     Tags = new[] { "Animation", "Sprite", "SpriteRenderer" },
@@ -808,14 +641,24 @@ anim.OnCycleComplete.AddListener(() => Debug.Log(""Cycle done!""));",
                             Code =
 @"progressBar.fillAmount = (float)anim.CurrentFrame / anim.FrameCount;"
                         },
+                        new DocMember
+                        {
+                            Kind = DocMemberKind.Property,
+                            Signature = "LoopMode",
+                            Summary = "The loop mode Play() uses: the Inspector value until Play(loopMode) changes it.",
+                            Code =
+@"if (anim.LoopMode == SpriteAnimatorLoopMode.Once && !anim.IsPlaying)
+    anim.Play(); // a finished Once plays again from the first frame"
+                        },
                         // Methods
                         new DocMember
                         {
                             Kind = DocMemberKind.Method,
-                            Signature = "Play(SpriteAnimatorLoopMode loopMode = Once)",
-                            Summary = "Starts playback. Sets and applies the given loop mode immediately (like Rigidbody.isKinematic). Defaults to Once.",
+                            Signature = "Play() / Play(SpriteAnimatorLoopMode loopMode)",
+                            Summary = "Starts playback and fires the start frame's events. Play() uses the Inspector loop mode; Play(loopMode) replaces it.",
                             Code =
-@"anim.Play();                                    // Once — stops at last frame
+@"anim.Play();                                    // Inspector loop mode
+anim.Play(SpriteAnimatorLoopMode.Once);         // stops at last frame
 anim.Play(SpriteAnimatorLoopMode.Loop);         // continuous loop
 anim.Play(SpriteAnimatorLoopMode.PingPong);     // bounces back and forth"
                         },
@@ -1636,9 +1479,8 @@ this.StartCoroutineParallel(corA, corB);
 this.StartCoroutineDelayed(myCor, 2f);
 this.StartCoroutineWhen(myCor, () => isReady);
 
-// Async bridge
-Task t = StartCoroutine(myCor).AsTask(this);
-await t;
+// Async bridge: the Task always settles (finished, faulted or canceled)
+await MyCoroutine().AsTask(this);
 await this.WhenAll(corA, corB, corC);",
                     Tags = new[] { "Coroutine", "Async", "Task" },
                     Category = DocCategory.Extensions,
@@ -1660,14 +1502,17 @@ await this.WhenAll(corA, corB, corC);",
                         new DocMember { Kind = DocMemberKind.Method, Signature = "StartCoroutineWhen(IEnumerator coroutine, Func<bool> predicate)",
                             Summary = "Polls the predicate each frame and starts the coroutine once it returns true.",
                             Code = @"this.StartCoroutineWhen(BeginCutscene(), () => assetsLoaded);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsTask(MonoBehaviour owner)  (Coroutine ext)",
-                            Summary = "Converts a running Coroutine handle to a Task that completes when the coroutine ends. Respects destroyCancellationToken.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsTask(MonoBehaviour owner, CancellationToken token = default)  (IEnumerator ext)",
+                            Summary = "Runs the IEnumerator as a Task. An exception anywhere in it (nested routines too) faults the Task; destroying or deactivating the owner, or the token, cancels it, and no more of the routine runs. It runs apart from the owner, so the owner's StopAllCoroutines doesn't stop it.",
                             Code =
-@"Task t = StartCoroutine(MyCoroutine()).AsTask(this);
-await t;" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "AsTask(MonoBehaviour owner)  (IEnumerator ext)",
-                            Summary = "Converts an IEnumerator directly to a Task without needing StartCoroutine. Propagates exceptions.",
-                            Code = @"await MyCoroutine().AsTask(this);" },
+@"try
+{
+    await PlayIntro().AsTask(this, destroyCancellationToken);
+}
+catch (OperationCanceledException)
+{
+    // the panel was hidden or destroyed first
+}" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "WhenAll(params IEnumerator[])  (MonoBehaviour ext)",
                             Summary = "Runs all coroutines in parallel and returns a Task that completes when all finish.",
                             Code = @"await this.WhenAll(LoadAudio(), LoadTextures(), LoadLevel());" },
@@ -1681,7 +1526,7 @@ await t;" },
                     Title = "TaskExtensions",
                     Namespace = "TRnK.Extensions",
                     Summary = "Forget() for fire-and-forget tasks, YieldTask for awaiting Tasks inside coroutines.",
-                    Description = "Forget() swallows exceptions unless you supply an error handler. YieldTask wraps a Task in a CustomYieldInstruction. AsCoroutine() converts an async Task to a yield instruction.",
+                    Description = "Forget() logs exceptions with Log.Error unless you supply an error handler, which runs on the main thread. YieldTask wraps a Task in a CustomYieldInstruction. AsCoroutine() converts an async Task to a yield instruction.",
                     Code =
 @"myTask.Forget();
 myTask.Forget(ex => Log.Error($""Failed: {ex}""));
@@ -1699,10 +1544,10 @@ IEnumerator Example()
                     Members = new[]
                     {
                         new DocMember { Kind = DocMemberKind.Method, Signature = "Forget()",
-                            Summary = "Fire-and-forget a Task. Silently swallows any exception.",
+                            Summary = "Fire-and-forget a Task. Logs exceptions with Log.Error; cancellation is ignored.",
                             Code = @"SaveDataAsync().Forget();" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "Forget(Action<Exception> errorHandler)",
-                            Summary = "Fire-and-forget with an error handler invoked if the Task faults.",
+                            Summary = "Fire-and-forget with an error handler invoked on the main thread if the Task faults.",
                             Code = @"FetchLeaderboardAsync().Forget(ex => Log.Error($""Fetch failed: {ex.Message}""));" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "AsCoroutine()",
                             Summary = "Wraps a Task as a yield instruction so it can be awaited inside a coroutine.",
@@ -2044,9 +1889,8 @@ Quaternion rXY = Utils.GetRandomRotation(
     new Vector2(0f, 90f),
     new Vector2(-45f, 45f));
 
-// Cached waits — avoids GC alloc
-yield return Utils.GetWaitForSeconds(1.5f);
-yield return Utils.GetWaitForSecondsRealtime(2f);",
+// Cached WaitForSeconds; avoids GC alloc
+yield return Utils.GetWaitForSeconds(1.5f);",
                     Tags = new[] { "Transform", "Rotation", "Coroutine" },
                     Category = DocCategory.Utilities,
                     Members = new[]
@@ -2073,9 +1917,6 @@ transform.rotation = Utils.GetRandomRotation(
     yield return Utils.GetWaitForSeconds(reloadTime);
     isReloaded = true;
 }" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetWaitForSecondsRealtime(float duration)",
-                            Summary = "Returns a cached WaitForSecondsRealtime (unscaled time) to avoid GC allocation.",
-                            Code = @"yield return Utils.GetWaitForSecondsRealtime(2f);" },
                     }
                 },
                 // ── Editor Tools ─────────────────────────────────
