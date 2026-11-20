@@ -1445,15 +1445,16 @@ if (0.75f.IsSuccessfulRoll(0f, 1f)) CriticalHit(); // 75% chance" },
                     Title = "TimeExtensions",
                     Namespace = "TRnK.Extensions",
                     Summary = "ToClock, ToShortClock, ToReadableFormat (float/double/int/TimeSpan), WithDate, WithTime, and period-check helpers.",
-                    Description = "All formatting methods have float, double, int, and TimeSpan overloads. Float/double overloads accept useCeiling (default true). ToReadableFormat omits zero units and auto-selects granularity. WithDate/WithTime produce new DateTimes with modified components. IsStartOfDay/Week/Month are period-boundary checks.",
+                    Description = "Formatting methods have float, double and int overloads (ToReadableFormat also TimeSpan). Float/double overloads accept useCeiling (default true). Clocks never wrap: hours and minutes keep counting. ToReadableFormat starts at the largest non-zero unit and shows up to units (default 3). Output matches TMPTextExtensions. WithDate/WithTime produce new DateTimes with modified components. IsStartOfDay/Week/Month are period-boundary checks.",
                     Code =
-@"string clock = 3661f.ToClock();                    // ""01:01:01""
-string sh    = 125f.ToShortClock();                // ""02:05""
-string rdbl  = 93784f.ToReadableFormat();          // ""1d2h3m""
-string spaced = 93784f.ToReadableFormat(useSpacing: true); // ""1d 2h 3m""
+@"string clock = 98710f.ToClock();                   // ""27:25:10""
+string sh    = 7530f.ToShortClock();               // ""125:30""
+string rdbl  = 98710f.ToReadableFormat();          // ""1d 3h 25m""
+string brief = 98710f.ToReadableFormat(units: 2);  // ""1d 3h""
+string tight = 98710f.ToReadableFormat(useSpacing: false); // ""1d3h25m""
 
 // TimeSpan overload
-string ts = TimeSpan.FromHours(2.5).ToReadableFormat(); // ""2h30m""
+string ts = TimeSpan.FromHours(2.5).ToReadableFormat(); // ""2h 30m 0s""
 
 // DateTime helpers
 DateTime dt = DateTime.UtcNow.WithTime(hour: 0, minute: 0, second: 0);
@@ -1463,17 +1464,17 @@ bool isMonday = DateTime.UtcNow.IsStartOfWeek(DayOfWeek.Monday);",
                     Members = new[]
                     {
                         new DocMember { Kind = DocMemberKind.Method, Signature = "ToClock(bool useCeiling = true)  (float / double / int ext)",
-                            Summary = "Formats seconds as HH:MM:SS. Rounds up by default for float/double.",
-                            Code = @"timerLabel.text = remainingSeconds.ToClock(); // ""01:30:00""" },
+                            Summary = "Formats seconds as HH:MM:SS; hours keep counting past a day. Negative clamps to 0. Rounds up by default for float/double.",
+                            Code = @"timerLabel.text = remainingSeconds.ToClock(); // ""27:25:10""" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "ToShortClock(bool useCeiling = true)  (float / double / int ext)",
-                            Summary = "Formats seconds as MM:SS. Rounds up by default for float/double.",
-                            Code = @"timerLabel.text = remainingSeconds.ToShortClock(); // ""02:45""" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToReadableFormat(bool useSpacing = true, bool useCeiling = true)  (float / double / int / TimeSpan ext)",
-                            Summary = "Formats duration into \"1d 2h 3m\" style, omitting zero units. useSpacing adds spaces between units.",
+                            Summary = "Formats seconds as MM:SS; minutes keep counting past an hour. Negative clamps to 0. Rounds up by default for float/double.",
+                            Code = @"timerLabel.text = remainingSeconds.ToShortClock(); // ""125:30""" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "ToReadableFormat(bool useSpacing = true, bool useCeiling = true, int units = 3)  (float / double / int / TimeSpan ext)",
+                            Summary = "Formats a duration from its largest non-zero unit, showing up to units (1–3). useSpacing adds spaces between units.",
                             Code =
-@"cooldownLabel.text = timeLeft.ToReadableFormat();           // ""3h 20m""
-cooldownLabel.text = timeLeft.ToReadableFormat(false);      // ""3h20m""
-cooldownLabel.text = TimeSpan.FromMinutes(90).ToReadableFormat(); // ""1h 30m""" },
+@"cooldownLabel.text = timeLeft.ToReadableFormat();           // ""3h 20m 5s""
+cooldownLabel.text = timeLeft.ToReadableFormat(units: 2);   // ""3h 20m""
+cooldownLabel.text = timeLeft.ToReadableFormat(false);      // ""3h20m5s""" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "WithDate(int? year, int? month, int? day)  (DateTime ext)",
                             Summary = "Returns a new DateTime with modified date components. Day clamps to the new month's max.",
                             Code =
@@ -1500,11 +1501,12 @@ DateTime noon     = DateTime.UtcNow.WithTime(hour: 12);" },
                     Title = "TMPTextExtensions",
                     Namespace = "TRnK.Extensions",
                     Summary = "TMP_Text helpers: SetClock, SetShortClock, SetReadableTime — zero-alloc via TMP's SetText.",
-                    Description = "All methods use TMP_Text.SetText() internally — no string allocations. Float overloads accept a useCeiling parameter (default true) to control rounding. SetReadableTime omits zero units and adjusts granularity automatically (e.g. shows 'd h m' when >= 1 day).",
+                    Description = "All methods use TMP_Text.SetText() internally — no string allocations. Float overloads accept a useCeiling parameter (default true) to control rounding. Clocks never wrap: hours and minutes keep counting. SetReadableTime starts at the largest non-zero unit and shows up to units (default 3). Output matches TimeExtensions.",
                     Code =
 @"timerLabel.SetClock(remainingSeconds);        // ""01:30:00""
-timerLabel.SetShortClock(remainingSeconds);   // ""01:30""
+timerLabel.SetShortClock(remainingSeconds);   // ""90:00""
 timerLabel.SetReadableTime(remainingSeconds); // ""1h 30m 0s""
+timerLabel.SetReadableTime(remainingSeconds, units: 2); // ""1h 30m""
 
 // Float overloads — ceiling by default
 timerLabel.SetClock(3661.7f);                 // ""01:01:02""
@@ -1514,7 +1516,7 @@ timerLabel.SetClock(3661.7f, useCeiling: false); // ""01:01:01""",
                     Members = new[]
                     {
                         new DocMember { Kind = DocMemberKind.Method, Signature = "SetClock(int totalSeconds)",
-                            Summary = "Sets TMP_Text to \"HH:MM:SS\" format. Zero-alloc.",
+                            Summary = "Sets TMP_Text to \"HH:MM:SS\"; hours keep counting past a day (\"27:25:10\"). Zero-alloc.",
                             Code = @"timerLabel.SetClock(Mathf.CeilToInt(remaining));" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "SetClock(float totalSeconds, bool useCeiling = true)",
                             Summary = "Float overload — rounds up by default. Pass useCeiling: false to floor instead.",
@@ -1522,17 +1524,18 @@ timerLabel.SetClock(3661.7f, useCeiling: false); // ""01:01:01""",
 @"// Update each frame — no string allocation
 timerLabel.SetClock(countdown.RemainingTime);" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "SetShortClock(int totalSeconds)",
-                            Summary = "Sets TMP_Text to \"MM:SS\" format. Zero-alloc.",
+                            Summary = "Sets TMP_Text to \"MM:SS\"; minutes keep counting past an hour (\"125:30\"). Zero-alloc.",
                             Code = @"timerLabel.SetShortClock(125); // ""02:05""" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "SetShortClock(float totalSeconds, bool useCeiling = true)",
                             Summary = "Float overload of SetShortClock.",
                             Code = @"timerLabel.SetShortClock(countdown.RemainingTime);" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetReadableTime(int totalSeconds, bool useSpacing = true)",
-                            Summary = "Sets TMP_Text to a human-readable duration like \"1d 2h 3m\" or \"45m 10s\". Omits zero units. useSpacing controls spaces between units.",
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetReadableTime(int totalSeconds, bool useSpacing = true, int units = 3)",
+                            Summary = "Sets TMP_Text to a duration from its largest non-zero unit, showing up to units (1–3), like \"1d 2h 3m\" or \"45m 10s\". useSpacing controls spaces between units.",
                             Code =
-@"cooldownLabel.SetReadableTime(93784);          // ""1d 2h 3m""
-cooldownLabel.SetReadableTime(93784, false);   // ""1d2h3m""" },
-                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetReadableTime(float totalSeconds, bool useSpacing = true, bool useCeiling = true)",
+@"cooldownLabel.SetReadableTime(93784);            // ""1d 2h 3m""
+cooldownLabel.SetReadableTime(93784, units: 2);  // ""1d 2h""
+cooldownLabel.SetReadableTime(93784, false);     // ""1d2h3m""" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "SetReadableTime(float totalSeconds, bool useSpacing = true, bool useCeiling = true, int units = 3)",
                             Summary = "Float overload of SetReadableTime.",
                             Code = @"cooldownLabel.SetReadableTime(timeLeft);" },
                     }

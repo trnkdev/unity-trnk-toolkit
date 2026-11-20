@@ -282,13 +282,16 @@ string setFormatted = hashSet.ToLiteral();
 
 ```csharp
 // Clock string formatting (float/double/int overloads; useCeiling = true by default for float/double)
+// Clocks never wrap: hours and minutes keep counting
 string clock = 3661f.ToClock();                      // "01:01:01"
+string long1 = 98710f.ToClock();                     // "27:25:10"
 string clockFloor = 3661f.ToClock(useCeiling: false);
 string short1 = 125f.ToShortClock();                 // "02:05"
-string short2 = 125.ToShortClock();                  // int overload
+string short2 = 7530.ToShortClock();                 // "125:30" (int overload)
 
-// Readable duration (float/double/int/TimeSpan overloads)
+// Readable duration from the largest unit (float/double/int/TimeSpan overloads; units = 3 by default)
 string readable  = 93784f.ToReadableFormat();                        // "1d 2h 3m"
+string brief     = 93784f.ToReadableFormat(units: 2);                // "1d 2h"
 string noSpace   = 93784f.ToReadableFormat(useSpacing: false);       // "1d2h3m"
 string fromSpan  = TimeSpan.FromSeconds(93784).ToReadableFormat();   // "1d 2h 3m"
 
@@ -305,15 +308,19 @@ bool isFirstDay = DateTime.UtcNow.IsStartOfMonth();
 ### TMPTextExtensions
 
 ```csharp
-// Set to "HH:MM:SS" from seconds
+// Same output as TimeExtensions, without allocating a string
+
+// Set to "HH:MM:SS" from seconds; hours keep counting past a day
 tmpText.SetClock(3661);        // "01:01:01"
-tmpText.SetClock(3661f);
+tmpText.SetClock(98710f);      // "27:25:10"
 
-// Set to "MM:SS" from seconds
+// Set to "MM:SS" from seconds; minutes keep counting past an hour
 tmpText.SetShortClock(125);           // "02:05"
+tmpText.SetShortClock(7530);          // "125:30"
 
-// Readable duration (spacing optional)
-tmpText.SetReadableTime(93784);      // "1d 2h 3m" (default spacing)
+// Readable duration from the largest unit (spacing optional, units = 3 by default)
+tmpText.SetReadableTime(93784);                    // "1d 2h 3m"
+tmpText.SetReadableTime(93784, units: 2);          // "1d 2h"
 tmpText.SetReadableTime(93784, useSpacing: false); // "1d2h3m"
 ```
 

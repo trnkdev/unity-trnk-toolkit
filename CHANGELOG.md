@@ -1,3 +1,18 @@
+## [2.6.0] - 2026-11-20
+
+### Time Formatting
+
+- `ToClock` / `SetClock` no longer wrap at 24 hours: `98710` seconds shows `27:25:10`, not `03:25:10`.
+- `ToShortClock` / `SetShortClock` no longer wrap at 60 minutes: `7530` seconds shows `125:30`, not `05:30`.
+- `ToClock` and `ToShortClock` clamp negative time to `0`, matching the `TMP_Text` versions (`-5` used to show `00:05`).
+- `float`, `double` and `TimeSpan` input clamps to `0..int.MaxValue` before rounding, so NaN, infinity and huge values print the same on every platform (x64 and ARM cast them to `int` differently).
+- Add `units` (1–3, default 3) to `ToReadableFormat` and `SetReadableTime`: `units: 2` shows `1d 3h` or `3h 25m`.
+- `ToReadableFormat(TimeSpan)` now defaults to spacing like every other overload (`2h 30m 0s`, was `2h30m0s`).
+- `TimeExtensions` and `TMPTextExtensions` share one writer that puts the digits into a reused per-thread buffer, so both always print the same text. `TMP_Text` versions pass it to `SetText(char[])` with no allocation or format parsing; string versions are about 3x faster with a single allocation.
+- Update `Docs/EXTENSIONS.md` and `TRnKDocDatabase` to match.
+
+---
+
 ## [2.5.3] - 2026-06-01
 
 ### Breaking Changes: Services Migrated to TRnK Game System

@@ -1,110 +1,55 @@
 using TMPro;
-using UnityEngine;
 
 namespace TRnK.Extensions
 {
+    /// <summary>Zero-alloc time setters: digits are written into a reused buffer and copied by TMP_Text.SetText(char[]).</summary>
     public static class TMPTextExtensions
     {
-        private const int SecondsPerMinute = 60;
-        private const int MinutesPerHour = 60;
-        private const int HoursPerDay = 24;
-
-        private const string ClockFormat = "{0:00}:{1:00}:{2:00}";
-        private const string ShortClockFormat = "{0:00}:{1:00}";
-        private const string DayHourMinuteSpacedFormat = "{0}d {1}h {2}m";
-        private const string DayHourMinuteFormat = "{0}d{1}h{2}m";
-        private const string HourMinuteSecondSpacedFormat = "{0}h {1}m {2}s";
-        private const string HourMinuteSecondFormat = "{0}h{1}m{2}s";
-        private const string MinuteSecondSpacedFormat = "{0}m {1}s";
-        private const string MinuteSecondFormat = "{0}m{1}s";
-        private const string SecondsOnlyFormat = "{0}s";
-
-        /// <summary>Sets text to "HH:MM:SS" from seconds.</summary>
+        /// <summary>Sets text to "HH:MM:SS" from seconds; hours keep counting past a day ("27:25:10").</summary>
         public static void SetClock(this TMP_Text text, int totalSeconds)
         {
             if (text == null) return;
 
-            if (totalSeconds < 0) totalSeconds = 0;
-
-            int totalMinutes = totalSeconds / SecondsPerMinute;
-            int seconds = totalSeconds - (totalMinutes * SecondsPerMinute);
-
-            int totalHours = totalMinutes / MinutesPerHour;
-            int minutes = totalMinutes - (totalHours * MinutesPerHour);
-
-            int hours = totalHours % HoursPerDay;
-
-            text.SetText(ClockFormat, hours, minutes, seconds);
+            char[] buffer = TimeExtensions.FormatBuffer;
+            text.SetText(buffer, 0, TimeExtensions.WriteClock(totalSeconds, buffer));
         }
 
-        /// <summary>Sets text to "HH:MM:SS" from seconds.</summary>
+        /// <summary>Sets text to "HH:MM:SS" from seconds; hours keep counting past a day ("27:25:10").</summary>
         public static void SetClock(this TMP_Text text, float totalSeconds, bool useCeiling = true)
         {
-            SetClock(text, useCeiling ? Mathf.CeilToInt(totalSeconds) : Mathf.FloorToInt(totalSeconds));
+            SetClock(text, TimeExtensions.ToWholeSeconds(totalSeconds, useCeiling));
         }
 
-        /// <summary>Sets text to "MM:SS" from seconds.</summary>
+        /// <summary>Sets text to "MM:SS" from seconds; minutes keep counting past an hour ("125:30").</summary>
         public static void SetShortClock(this TMP_Text text, int totalSeconds)
         {
             if (text == null) return;
 
-            if (totalSeconds < 0) totalSeconds = 0;
-
-            int totalMinutes = totalSeconds / SecondsPerMinute;
-            int seconds = totalSeconds - (totalMinutes * SecondsPerMinute);
-
-            int minutes = totalMinutes % MinutesPerHour;
-
-            text.SetText(ShortClockFormat, minutes, seconds);
+            char[] buffer = TimeExtensions.FormatBuffer;
+            text.SetText(buffer, 0, TimeExtensions.WriteShortClock(totalSeconds, buffer));
         }
 
-        /// <summary>Sets text to "MM:SS" from seconds.</summary>
+        /// <summary>Sets text to "MM:SS" from seconds; minutes keep counting past an hour ("125:30").</summary>
         public static void SetShortClock(this TMP_Text text, float totalSeconds, bool useCeiling = true)
         {
-            SetShortClock(text, useCeiling ? Mathf.CeilToInt(totalSeconds) : Mathf.FloorToInt(totalSeconds));
+            SetShortClock(text, TimeExtensions.ToWholeSeconds(totalSeconds, useCeiling));
         }
 
-        /// <summary>Sets text to readable duration like "2d 3h 45m" (spacing optional).</summary>
-        public static void SetReadableTime(this TMP_Text text, int totalSeconds, bool useSpacing = true)
+        /// <summary>Sets text to a duration from its largest unit, showing up to <paramref name="units"/> units ("1d 14h 20m", or "1d 14h" with 2).</summary>
+        public static void SetReadableTime(this TMP_Text text, int totalSeconds, bool useSpacing = true,
+                                           int units = TimeExtensions.DefaultUnits)
         {
             if (text == null) return;
 
-            if (totalSeconds < 0) totalSeconds = 0;
-
-            int totalMinutes = totalSeconds / SecondsPerMinute;
-            int seconds = totalSeconds - (totalMinutes * SecondsPerMinute);
-
-            int totalHours = totalMinutes / MinutesPerHour;
-            int minutes = totalMinutes - (totalHours * MinutesPerHour);
-
-            int totalDays = totalHours / HoursPerDay;
-            int hours = totalHours - (totalDays * HoursPerDay);
-
-            if (totalDays >= 1)
-            {
-                text.SetText(useSpacing ? DayHourMinuteSpacedFormat : DayHourMinuteFormat, totalDays, hours, minutes);
-                return;
-            }
-
-            if (totalHours >= 1)
-            {
-                text.SetText(useSpacing ? HourMinuteSecondSpacedFormat : HourMinuteSecondFormat, hours, minutes, seconds);
-                return;
-            }
-
-            if (totalMinutes >= 1)
-            {
-                text.SetText(useSpacing ? MinuteSecondSpacedFormat : MinuteSecondFormat, minutes, seconds);
-                return;
-            }
-
-            text.SetText(SecondsOnlyFormat, seconds);
+            char[] buffer = TimeExtensions.FormatBuffer;
+            text.SetText(buffer, 0, TimeExtensions.WriteReadable(totalSeconds, useSpacing, units, buffer));
         }
 
-        /// <summary>Sets text to readable duration like "2d 3h 45m" (spacing optional).</summary>
-        public static void SetReadableTime(this TMP_Text text, float totalSeconds, bool useSpacing = true, bool useCeiling = true)
+        /// <summary>Sets text to a duration from its largest unit, showing up to <paramref name="units"/> units ("1d 14h 20m", or "1d 14h" with 2).</summary>
+        public static void SetReadableTime(this TMP_Text text, float totalSeconds, bool useSpacing = true,
+                                           bool useCeiling = true, int units = TimeExtensions.DefaultUnits)
         {
-            SetReadableTime(text, useCeiling ? Mathf.CeilToInt(totalSeconds) : Mathf.FloorToInt(totalSeconds), useSpacing);
+            SetReadableTime(text, TimeExtensions.ToWholeSeconds(totalSeconds, useCeiling), useSpacing, units);
         }
     }
 }
