@@ -1112,11 +1112,18 @@ string pct   = 0.25f.AsPercent();                 // ""25%""
 string exact = 25f.AsExactPercent();              // ""25%""
 
 MyEnum e  = ""EnumValue"".ToEnum<MyEnum>();
-MyEnum e2 = ""bad"".ToEnumOrDefault(MyEnum.Default);",
+MyEnum e2 = ""bad"".ToEnumOrDefault(MyEnum.Default);
+
+bool valid = ""1.2.10"".TryCompareVersion(""1.2.9"", out int c); // true, c > 0",
                     Tags = new[] { "String", "Format" },
                     Category = DocCategory.Extensions,
                     Members = new[]
                     {
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "TryCompareVersion(string other, out int comparison)",
+                            Summary = "Compares dotted numeric versions part by part; \"1.2\" equals \"1.2.0\". Returns false if either isn't digits and dots.",
+                            Code =
+@"if (Application.version.TryCompareVersion(remoteMinimum, out int comparison) && comparison < 0)
+    ShowForceUpdate();" },
                         new DocMember { Kind = DocMemberKind.Method, Signature = "ParseFloatWithComma()",
                             Summary = "Parses a float string that uses a comma as the decimal separator. Throws on failure.",
                             Code = @"float f = ""3,14"".ParseFloatWithComma(); // 3.14f" },
@@ -1143,6 +1150,28 @@ MyEnum e2 = ""bad"".ToEnumOrDefault(MyEnum.Default);",
                         new DocMember { Kind = DocMemberKind.Method, Signature = "ToEnumOrDefault<T>(T defaultValue = default)",
                             Summary = "Parses the string as enum T. Returns defaultValue (with a warning) if parsing fails or input is null/empty.",
                             Code = @"MyEnum e = userInput.ToEnumOrDefault(MyEnum.None);" },
+                    }
+                },
+                new TRnKDocEntry
+                {
+                    Title = "ScrollRectExtensions",
+                    Namespace = "TRnK.Extensions",
+                    Summary = "The normalized position that centers an item in a ScrollRect; snap to it or tween to it.",
+                    Description = "Works with any content pivot. Positions past the ends clamp, and content that fits stays put. Animation is up to the game's own tween library. Pass rebuildLayout: true right after adding items in the same frame.",
+                    Code =
+@"float target = list.GetVerticalPositionToCenter(item);
+list.verticalNormalizedPosition = target;                          // snap
+Tween.UIVerticalNormalizedPosition(list, target, 0.35f, Ease.OutCubic); // or tween",
+                    Tags = new[] { "UI", "ScrollRect", "Scroll" },
+                    Category = DocCategory.Extensions,
+                    Members = new[]
+                    {
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetVerticalPositionToCenter(RectTransform target, bool rebuildLayout = false)",
+                            Summary = "The verticalNormalizedPosition that puts the target in the middle of the viewport.",
+                            Code = @"levelList.verticalNormalizedPosition = levelList.GetVerticalPositionToCenter(currentLevel);" },
+                        new DocMember { Kind = DocMemberKind.Method, Signature = "GetHorizontalPositionToCenter(RectTransform target, bool rebuildLayout = false)",
+                            Summary = "The horizontalNormalizedPosition that puts the target in the middle of the viewport.",
+                            Code = @"shopStrip.horizontalNormalizedPosition = shopStrip.GetHorizontalPositionToCenter(offer);" },
                     }
                 },
                 new TRnKDocEntry

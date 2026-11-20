@@ -7,6 +7,38 @@ namespace TRnK.Extensions
 {
     public static class StringExtensions
     {
+        /// <summary>Compares dotted numeric versions part by part ("1.2" equals "1.2.0"); false if either isn't digits and dots.</summary>
+        public static bool TryCompareVersion(this string version, string other, out int comparison)
+        {
+            comparison = 0;
+            if (!TryParseVersion(version, out int[] left) || !TryParseVersion(other, out int[] right)) return false;
+
+            for (int i = 0; i < Math.Max(left.Length, right.Length); i++)
+            {
+                int leftPart = i < left.Length ? left[i] : 0;
+                int rightPart = i < right.Length ? right[i] : 0;
+                if (leftPart == rightPart) continue;
+
+                comparison = leftPart.CompareTo(rightPart);
+                return true;
+            }
+
+            return true;
+        }
+
+        private static bool TryParseVersion(string version, out int[] parts)
+        {
+            parts = null;
+            if (string.IsNullOrWhiteSpace(version)) return false;
+
+            string[] segments = version.Trim().Split('.');
+            parts = new int[segments.Length];
+            for (int i = 0; i < segments.Length; i++)
+                if (!int.TryParse(segments[i], NumberStyles.None, CultureInfo.InvariantCulture, out parts[i])) return false;
+
+            return true;
+        }
+
         /// <summary>Parses a string with comma as decimal separator to float.</summary>
         public static float ParseFloatWithComma(this string input)
         {

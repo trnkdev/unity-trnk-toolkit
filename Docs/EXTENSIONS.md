@@ -194,6 +194,28 @@ string exact2 = 25.5f.AsExactPercent(1);         // "25.5%"
 // Enum conversion
 MyEnum value = "EnumValue".ToEnum<MyEnum>();
 MyEnum safe = "BadValue".ToEnumOrDefault(MyEnum.Default);
+
+// Version compare: digits and dots only, a missing part counts as 0
+if (Application.version.TryCompareVersion(remoteMinimum, out int comparison) && comparison < 0)
+    ShowForceUpdate();
+"1.2".TryCompareVersion("1.2.0", out int same);    // true, 0
+"v1.2".TryCompareVersion("1.2", out _);            // false
+```
+
+### ScrollRectExtensions
+
+```csharp
+// The normalized position that centers the item (ends clamp)
+float target = list.GetVerticalPositionToCenter(item);
+
+// Snap
+list.verticalNormalizedPosition = target;
+
+// Or animate with your own tween library, e.g. PrimeTween
+Tween.UIVerticalNormalizedPosition(list, target, 0.35f, Ease.OutCubic);
+
+// Right after adding items this frame, rebuild the layout first
+list.verticalNormalizedPosition = list.GetVerticalPositionToCenter(newItem, rebuildLayout: true);
 ```
 
 ### BigNumberStyleExtensions

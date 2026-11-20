@@ -1,3 +1,13 @@
+## [2.8.0] - 2026-11-20
+
+### New Extensions
+
+- Add `ScrollRect.GetVerticalPositionToCenter(target)` and `GetHorizontalPositionToCenter(target)`: the normalized position that centers an item in the viewport, with the ends clamped. Assign it to snap, or tween to it with your own tween library.
+- Add `string.TryCompareVersion(other, out comparison)`: compares dotted numeric versions part by part (`"1.2.10"` is newer than `"1.2.9"`, `"1.2"` equals `"1.2.0"`); anything that isn't digits and dots returns false.
+- Update `Docs/EXTENSIONS.md` and `TRnKDocDatabase` to match.
+
+---
+
 ## [2.7.0] - 2026-11-20
 
 ### Breaking Changes
