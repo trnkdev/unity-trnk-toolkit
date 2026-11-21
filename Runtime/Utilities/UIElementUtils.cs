@@ -41,7 +41,7 @@ namespace TRnK.Utilities
                 return new List<RaycastResult>();
             }
 
-            PointerEventData eventData = new(EventSystem.current) { position = Input.mousePosition };
+            PointerEventData eventData = new(EventSystem.current) { position = GetPointerScreenPosition() };
             List<RaycastResult> raycastResults = new();
             EventSystem.current.RaycastAll(eventData, raycastResults);
             return raycastResults;

@@ -1,3 +1,11 @@
+## [2.9.1] - 2026-11-21
+
+### Utilities
+
+- Mouse and pointer helpers (`GetMousePosition2D`/`3D`, `GetMousePosition3DFromRaycast`, `GetMouseRay`, `IsMouseInGameWindow`, `IsPointerOverUI(LayerMask)`, `GetEventSystemRaycastResults`) work with the Input System package. They used to read `UnityEngine.Input` only and threw `InvalidOperationException` when Active Input Handling was set to the Input System package. With "Both", the Input System is used.
+
+---
+
 ## [2.9.0] - 2026-11-21
 
 ### Breaking

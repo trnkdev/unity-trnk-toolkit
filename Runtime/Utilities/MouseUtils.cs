@@ -10,7 +10,7 @@ namespace TRnK.Utilities
         /// <summary>Detect whether the cursor is focused on the game window or not.</summary>
         public static bool IsMouseInGameWindow()
         {
-            Vector3 mp = Input.mousePosition;
+            Vector2 mp = GetPointerScreenPosition();
             return !(0 > mp.x || 0 > mp.y || Screen.width < mp.x || Screen.height < mp.y);
         }
 
@@ -24,8 +24,7 @@ namespace TRnK.Utilities
                 return Vector2.zero;
             }
 
-            var mousePos = Input.mousePosition;
-            return cam.ScreenToWorldPoint(mousePos);
+            return cam.ScreenToWorldPoint(GetPointerScreenPosition());
         }
 
         /// <summary>Returns the world position of the mouse cursor in 3D at a specified distance from the camera.</summary>
@@ -39,8 +38,8 @@ namespace TRnK.Utilities
                 return Vector3.zero;
             }
 
-            var mousePos = Input.mousePosition.With(z: distance);
-            return cam.ScreenToWorldPoint(mousePos);
+            Vector3 mousePos = GetPointerScreenPosition();
+            return cam.ScreenToWorldPoint(mousePos.With(z: distance));
         }
 
         /// <summary>Returns the 3D position of the mouse cursor from a raycast.</summary>
@@ -66,7 +65,18 @@ namespace TRnK.Utilities
                 return default;
             }
 
-            return cam.ScreenPointToRay(Input.mousePosition);
+            return cam.ScreenPointToRay(GetPointerScreenPosition());
+        }
+
+        /// <summary>Returns the pointer's screen position from whichever input system is active.</summary>
+        private static Vector2 GetPointerScreenPosition()
+        {
+#if ENABLE_INPUT_SYSTEM && TRNK_INPUT_SYSTEM
+            var pointer = UnityEngine.InputSystem.Pointer.current;
+            return pointer != null ? pointer.position.ReadValue() : Vector2.zero;
+#else
+            return Input.mousePosition;
+#endif
         }
     }
 }

@@ -1,6 +1,6 @@
 {
   "name": "com.trnkdev.unitytoolkit",
-  "version": "2.9.0",
+  "version": "2.9.1",
   "displayName": "TRnK Toolkit",
   "description": "A comprehensive utility package for Unity game development inspired by various sources and my own experiences.",
   "unity": "6.3",
