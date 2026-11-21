@@ -91,16 +91,7 @@ namespace TRnK.Extensions
         /// <summary>Returns a flat "[a, b, c]" representation for debug logging (not nested-aware).</summary>
         public static string ToLiteral<T>(this T[] arr)
         {
-            // Handle null.
-            if (arr == null)
-                return "null";
-
-            // Handle empty.
-            if (arr.Length == 0)
-                return "[]";
-
-            // Format the array.
-            return "[" + string.Join(", ", arr) + "]";
+            return arr == null ? "null" : JoinLiteral(arr, "[", "]");
         }
 
         /// <summary>Gets a sub-array from the specified start index to the end.</summary>
@@ -166,23 +157,7 @@ namespace TRnK.Extensions
         {
             if (arr.IsNullOrEmpty())
                 throw new InvalidOperationException("Cannot get random element from null or empty array");
-
-            float totalWeight = 0f;
-            for (int i = 0; i < arr.Length; i++) totalWeight += weightSelector(arr[i]);
-            if (totalWeight <= 0)
-                throw new InvalidOperationException("Total weight must be greater than 0");
-
-            float randomValue = Random.Range(0f, totalWeight);
-            float currentWeight = 0f;
-
-            foreach (T item in arr)
-            {
-                currentWeight += weightSelector(item);
-                if (randomValue <= currentWeight)
-                    return item;
-            }
-
-            return arr[^1]; // Fallback, should rarely happen due to floating point precision
+            return PickWeighted(arr, weightSelector);
         }
 
         /// <summary>Checks if the 2D grid is null or has zero total elements.</summary>
@@ -209,8 +184,7 @@ namespace TRnK.Extensions
                 for (int x = 0; x < width; x++)
                 {
                     if (x > 0) sb.Append(", ");
-                    var v = grid[y, x];
-                    sb.Append(v?.ToString() ?? "null");
+                    sb.Append(Literal(grid[y, x]));
                 }
                 sb.Append("]");
             }
@@ -310,19 +284,10 @@ namespace TRnK.Extensions
         }
 
 
-        /// <summary>Returns a flat "{a, b, c}" representation for debug logging (not nested-aware).</summary>
+        /// <summary>Returns a flat "[a, b, c]" representation for debug logging (not nested-aware).</summary>
         public static string ToLiteral<T>(this List<T> list)
         {
-            // Handle null.
-            if (list == null)
-                return "null";
-
-            // Handle empty.
-            if (list.Count == 0)
-                return "[]";
-
-            // Format the list.
-            return "{" + string.Join(", ", list) + "}";
+            return list == null ? "null" : JoinLiteral(list, "[", "]");
         }
 
         /// <summary>Returns multiple random elements from the list without replacement.</summary>
@@ -347,20 +312,7 @@ namespace TRnK.Extensions
         {
             if (list.IsNullOrEmpty())
                 throw new InvalidOperationException("Cannot get random element from null or empty list");
-
-            float totalWeight = 0f;
-            for (int i = 0; i < list.Count; i++) totalWeight += weightSelector(list[i]);
-            if (totalWeight <= 0)
-                throw new InvalidOperationException("Total weight must be greater than 0");
-
-            float randomValue = Random.Range(0f, totalWeight);
-            float currentWeight = 0f;
-            foreach (T item in list)
-            {
-                currentWeight += weightSelector(item);
-                if (randomValue <= currentWeight) return item;
-            }
-            return list[^1];
+            return PickWeighted(list, weightSelector);
         }
         #endregion
 
@@ -409,43 +361,87 @@ namespace TRnK.Extensions
         /// <summary>Returns a flat "{k: v, ...}" representation for debug logging (not nested-aware).</summary>
         public static string ToLiteral<K, V>(this Dictionary<K, V> dict) where K : notnull
         {
-            // Handle null.
             if (dict == null)
                 return "null";
 
-            // Handle empty.
-            if (dict.Count == 0)
-                return "{}";
-
-            var sb2 = new StringBuilder("{");
+            var sb = new StringBuilder("{");
             bool first = true;
             foreach (var kvp in dict)
             {
-                if (!first) sb2.Append(", ");
-                sb2.Append(kvp.Key).Append(": ").Append(kvp.Value);
+                if (!first) sb.Append(", ");
+                sb.Append(Literal(kvp.Key)).Append(": ").Append(Literal(kvp.Value));
                 first = false;
             }
-            sb2.Append("}");
-            return sb2.ToString();
+            return sb.Append("}").ToString();
         }
         #endregion
 
-        /// <summary>Returns a flat FIFO-order string representation for debug logging.</summary>
+        /// <summary>Returns a flat FIFO-order "[a, b, c]" representation for debug logging.</summary>
         public static string ToLiteral<T>(this Queue<T> queue)
         {
-            return new List<T>(queue).ToLiteral();
+            return queue == null ? "null" : JoinLiteral(queue, "[", "]");
         }
 
-        /// <summary>Returns a flat LIFO-order string representation for debug logging.</summary>
+        /// <summary>Returns a flat LIFO-order "[a, b, c]" representation for debug logging.</summary>
         public static string ToLiteral<T>(this Stack<T> stack)
         {
-            return new List<T>(stack).ToLiteral();
+            return stack == null ? "null" : JoinLiteral(stack, "[", "]");
         }
 
-        /// <summary>Returns a flat string representation for debug logging.</summary>
+        /// <summary>Returns a flat "{a, b, c}" representation for debug logging.</summary>
         public static string ToLiteral<T>(this HashSet<T> set)
         {
-            return new List<T>(set).ToLiteral();
+            return set == null ? "null" : JoinLiteral(set, "{", "}");
+        }
+
+        /// <summary>Picks an item with probability proportional to its weight; zero-weight items are never picked.</summary>
+        private static T PickWeighted<T>(IReadOnlyList<T> items, Func<T, float> weightSelector)
+        {
+            float totalWeight = 0f;
+            for (int i = 0; i < items.Count; i++)
+            {
+                float weight = weightSelector(items[i]);
+                if (weight < 0f)
+                    throw new ArgumentException($"Weight at index {i} is negative: {weight}");
+                totalWeight += weight;
+            }
+            if (totalWeight <= 0f)
+                throw new InvalidOperationException("Total weight must be greater than 0");
+
+            float roll = Random.Range(0f, totalWeight);
+            float cumulative = 0f;
+            int lastWeighted = 0;
+            for (int i = 0; i < items.Count; i++)
+            {
+                float weight = weightSelector(items[i]);
+                if (weight <= 0f) continue;
+                cumulative += weight;
+                lastWeighted = i;
+                if (roll < cumulative) return items[i];
+            }
+
+            // Random.Range includes totalWeight itself, which no item's range covers.
+            return items[lastWeighted];
+        }
+
+        private static string JoinLiteral<T>(IEnumerable<T> items, string open, string close)
+        {
+            var sb = new StringBuilder(open);
+            bool first = true;
+            foreach (T item in items)
+            {
+                if (!first) sb.Append(", ");
+                sb.Append(Literal(item));
+                first = false;
+            }
+            return sb.Append(close).ToString();
+        }
+
+        private static string Literal<T>(T value)
+        {
+            if (value is null) return "null";
+            if (value is string text) return $"'{text}'";
+            return value.ToString();
         }
     }
 }

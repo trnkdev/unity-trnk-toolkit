@@ -58,22 +58,43 @@ namespace TRnK.Extensions
         /// <summary>Converts an integer to the specified enum type. Throws if value is not a defined enum member.</summary>
         public static T ToEnum<T>(this int value) where T : struct, Enum
         {
-            if (!Enum.IsDefined(typeof(T), value))
+            if (!TryToDefinedEnum(value, out T result))
                 throw new ArgumentException($"Value {value} is not defined in enum {typeof(T).Name}");
 
-            return (T)(object)value;
+            return result;
         }
 
         /// <summary>Converts to enum T, or returns the default if the value is not defined.</summary>
         public static T ToEnumOrDefault<T>(this int value, T defaultValue = default) where T : struct, Enum
         {
-            if (!Enum.IsDefined(typeof(T), value))
+            if (!TryToDefinedEnum(value, out T result))
             {
                 Log.Warn($"Value {value} is not defined in enum {typeof(T).Name}, using default: {defaultValue}");
                 return defaultValue;
             }
 
-            return (T)(object)value;
+            return result;
+        }
+
+        /// <summary>Converts through the enum's underlying type, so enums not stored as int work too.</summary>
+        private static bool TryToDefinedEnum<T>(int value, out T result) where T : struct, Enum
+        {
+            result = default;
+            object underlying;
+            try
+            {
+                underlying = Convert.ChangeType(value, Enum.GetUnderlyingType(typeof(T)));
+            }
+            catch (OverflowException)
+            {
+                return false;
+            }
+
+            if (!Enum.IsDefined(typeof(T), underlying))
+                return false;
+
+            result = (T)Enum.ToObject(typeof(T), underlying);
+            return true;
         }
     }
 }

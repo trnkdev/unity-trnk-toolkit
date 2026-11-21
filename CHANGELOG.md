@@ -1,3 +1,14 @@
+## [2.9.2] - 2026-11-21
+
+### Extensions
+
+- `RandWeighted` (array and List) never picks a zero-weight item. It used to pick one when the roll landed exactly on its boundary. A negative weight now throws `ArgumentException`.
+- `int.ToEnum` / `ToEnumOrDefault` work for enums stored as `byte`, `short`, `long` or `ulong`. They used to throw for any enum not stored as `int`.
+- `GetChildren`, `GetChildrenInLayer` and `GetChildrenInLayerRecursive`: "inactive" means the child itself is disabled (`activeSelf`). Under a disabled parent they used to return nothing. The recursive version skips disabled children and everything under them.
+- `ToLiteral` follows Python's style: lists, arrays, queues and stacks print as `[a, b]`, sets as `{a, b}`, dictionaries as `{k: v}`. Strings are quoted (`'a'`) and null prints as `null` everywhere. A null Queue, Stack or HashSet prints `null` instead of throwing.
+
+---
+
 ## [2.9.1] - 2026-11-21
 
 ### Utilities

@@ -28,31 +28,17 @@ namespace TRnK.Extensions
             }
         }
 
-        /// <summary>Gets all direct children of this transform.</summary>
+        /// <summary>Gets all direct children of this transform. Inactive means the child itself is disabled (activeSelf).</summary>
         public static Transform[] GetChildren(this Transform transform, bool includeInactive = false)
         {
-            if (includeInactive)
+            var children = new List<Transform>(transform.childCount);
+            for (int i = 0; i < transform.childCount; i++)
             {
-                var children = new Transform[transform.childCount];
-                for (int i = 0; i < transform.childCount; i++)
-                {
-                    children[i] = transform.GetChild(i);
-                }
-                return children;
+                Transform child = transform.GetChild(i);
+                if (includeInactive || child.gameObject.activeSelf)
+                    children.Add(child);
             }
-            else
-            {
-                var activeChildren = new List<Transform>();
-                for (int i = 0; i < transform.childCount; i++)
-                {
-                    Transform child = transform.GetChild(i);
-                    if (child.gameObject.activeInHierarchy)
-                    {
-                        activeChildren.Add(child);
-                    }
-                }
-                return activeChildren.ToArray();
-            }
+            return children.ToArray();
         }
 
         /// <summary>Makes transform look at target in 2D (Z-axis rotation only).</summary>
@@ -148,7 +134,7 @@ namespace TRnK.Extensions
             for (int i = 0; i < childCount; i++)
             {
                 Transform child = transform.GetChild(i);
-                if ((includeInactive || child.gameObject.activeInHierarchy) && child.gameObject.IsInLayer(layerMask))
+                if ((includeInactive || child.gameObject.activeSelf) && child.gameObject.IsInLayer(layerMask))
                 {
                     results.Add(child.gameObject);
                 }
@@ -157,7 +143,7 @@ namespace TRnK.Extensions
             return results.ToArray();
         }
 
-        /// <summary>Gets all child GameObjects in the specified layer mask, including nested children.</summary>
+        /// <summary>Gets all child GameObjects in the specified layer mask, including nested children. Without includeInactive, disabled children and everything under them are skipped.</summary>
         public static GameObject[] GetChildrenInLayerRecursive(this Transform transform, LayerMask layerMask, bool includeInactive = false)
         {
             var results = new List<GameObject>();
@@ -173,11 +159,10 @@ namespace TRnK.Extensions
             for (int i = 0; i < childCount; i++)
             {
                 Transform child = transform.GetChild(i);
-                if ((includeInactive || child.gameObject.activeInHierarchy) && child.gameObject.IsInLayer(layerMask))
-                {
+                if (!includeInactive && !child.gameObject.activeSelf)
+                    continue;
+                if (child.gameObject.IsInLayer(layerMask))
                     results.Add(child.gameObject);
-                }
-                // Recursively check this child's children.
                 GetChildrenInLayerRecursiveInternal(child, layerMask, includeInactive, results);
             }
         }
