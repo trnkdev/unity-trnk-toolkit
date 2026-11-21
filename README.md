@@ -52,7 +52,7 @@ TRnK.Toolkit is part of a suite of Unity packages:
 
 ## Requirements
 
-- Unity 6 or later
+- Unity 6.3 or later
 - No external dependencies
 
 ## License

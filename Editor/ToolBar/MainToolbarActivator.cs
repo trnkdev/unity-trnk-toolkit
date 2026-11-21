@@ -1,4 +1,4 @@
-#if UNITY_EDITOR && UNITY_6000_3_OR_NEWER
+#if UNITY_EDITOR
 using System;
 using UnityEditor;
 using UnityEditor.Overlays;

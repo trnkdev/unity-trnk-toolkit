@@ -176,17 +176,12 @@ namespace TRnK.Toolkit
             {
                 var t = typeof(Editor).Assembly.GetType("UnityEditor.GameView");
                 if (t == null) return new Vector2(FallbackWidth, FallbackHeight);
-#if UNITY_6000_0_OR_NEWER
                 var instances = Resources.FindObjectsOfTypeAll(t);
                 if (instances != null && instances.Length > 0)
                 {
                     var m = t.GetMethod("GetPlayModeViewSize", BindingFlags.NonPublic | BindingFlags.Instance);
                     if (m != null) return (Vector2)m.Invoke(instances[0], null);
                 }
-#else
-                var m = t.GetMethod("GetSizeOfMainGameView", BindingFlags.NonPublic | BindingFlags.Static);
-                if (m != null) return (Vector2)m.Invoke(null, null);
-#endif
             }
             catch (Exception ex)
             {

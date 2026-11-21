@@ -26,10 +26,7 @@ namespace TRnK.Toolkit
                     {
                         settings.hideToolbar = hideToolbar;
                         EditorAssetUtils.MarkDirtyAndSave(settings);
-                        bool enabled = !hideToolbar;
-                        SceneSwitcherToolbar.ApplyPreferenceChange(enabled);
-                        TimeScaleTool.ApplyPreferenceChange(enabled);
-                        try { ClearPlayerPrefsTool.ApplyPreferenceChange(enabled); } catch { }
+                        MainToolbarActivator.SetDisplayed(!hideToolbar);
                     }
 
                     if (!settings.hideToolbar)

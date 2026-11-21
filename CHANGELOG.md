@@ -1,3 +1,17 @@
+## [2.9.0] - 2026-11-21
+
+### Breaking
+
+- Requires Unity 6.3 or later. The toolbar tools use Unity 6.3's main toolbar API only.
+
+### Editor Tools
+
+- Removed the Unity 6.0–6.2 toolbar code, which searched every editor window and repositioned the tools each frame.
+- Scene Switcher: "Activate Loaded Additive Scenes On Select" is now saved in the project's TRnK settings asset, the same setting as the Project Settings toggle. It used to be a separate per-machine EditorPrefs value whose menu tick and behavior had different defaults.
+- Time Scale: no longer writes an unused EditorPrefs value.
+
+---
+
 ## [2.8.1] - 2026-11-21
 
 ### Editor Tools
