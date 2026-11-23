@@ -1,3 +1,13 @@
+## [2.10.0] - 2026-11-23
+
+### New Components
+
+- Add `FlexGridLayoutGroup`: a grid with a fixed cell size and a maximum per row, where each row is aligned on its own, so a short last row follows Child Alignment. Shrink To Fit scales cells and spacing down when a row is wider than the rect, and the preferred height follows the shrunk cells.
+- Add `IconLabelCentering`: centres an icon and the visible text of a TMP label as one group and re-centres when the text changes. Padding keeps space free on each side: the label is sized to what's left and the icon keeps its size, so the label's Ellipsis, Truncate, Auto Size or Wrap keep long text inside. The editor warns when a layout group on the same object or a horizontal Content Size Fitter on the label would fight it.
+- Update `Docs/COMPONENTS.md` and `TRnKDocDatabase` to match.
+
+---
+
 ## [2.9.2] - 2026-11-21
 
 ### Extensions

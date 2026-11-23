@@ -99,6 +99,57 @@ Configure `Speed`, `Auto Play`, and `Use Unscaled Time` in the inspector.
 
 ---
 
+## UI Layout
+
+### FlexGridLayoutGroup
+
+A grid with a fixed cell size and a maximum number of cells per row. Each row is aligned on its own by **Child Alignment**, so a short last row sits in the middle (Unity's `GridLayoutGroup` keeps it on the left).
+
+| Inspector Field | Description                                                         |
+| --------------- | ------------------------------------------------------------------- |
+| Cell Size       | Size of every cell                                                  |
+| Spacing         | Gap between cells (x) and rows (y)                                  |
+| Max Per Row     | Cells per row; the last row holds the rest                          |
+| Shrink To Fit   | Scales cells and spacing down when a full row is wider than the rect |
+
+```csharp
+var grid = GetComponent<FlexGridLayoutGroup>();
+Vector2 cell = grid.CellSize;
+int perRow  = grid.MaxPerRow;
+```
+
+- **Shrink To Fit needs a width set from outside**: a parent layout group, anchors or a fixed size. The grid reports the unshrunk row as its preferred width, so a horizontal `ContentSizeFitter` on the grid would always make room for full-size cells and never shrink them.
+- The preferred height follows the shrunk cells, so a vertical `ContentSizeFitter` ends exactly at the last row.
+- Inactive children and children with `LayoutElement.ignoreLayout` are skipped, as in Unity's layout groups.
+
+### IconLabelCentering
+
+Centres an icon and the **visible** text of a TMP label as one group inside its rect, and re-centres whenever the text changes. A `HorizontalLayoutGroup` centres the label's rect instead, so short text in a wide label sits off to one side.
+
+| Inspector Field | Description                                                                |
+| --------------- | -------------------------------------------------------------------------- |
+| Icon            | The icon's RectTransform; a direct child                                    |
+| Label           | The TMP text; a direct child                                                |
+| Spacing         | Gap between the icon and the text                                           |
+| Padding         | Space kept free on each side                                                |
+| Icon On Right   | Puts the icon after the text                                                |
+
+```csharp
+var centering = GetComponent<IconLabelCentering>();
+icon.SetActive(false);
+centering.Align(); // after showing, hiding or resizing the icon
+```
+
+- **Only the text fits itself to the space.** The component sets the label's width to the rect's width minus the padding on both sides, the icon and the spacing. It never changes the icon's size; it only moves it.
+- **Long text** is handled by the label's own settings: **Ellipsis** or **Truncate** cut it, **Auto Size** shrinks it, **Wrap** breaks it into lines. Auto Size alone spills out once it reaches its minimum size, so pair it with Ellipsis. With **Overflow** (TMP's default) long text still runs past the padding.
+- TMP turns Ellipsis into Truncate on **Bold** text, whatever the font, and logs a warning.
+- Re-centring runs when the text changes or this rect is resized. Showing, hiding or resizing the icon doesn't trigger it: call `Align()` afterwards.
+- Don't put a layout group on the same object, or a horizontal `ContentSizeFitter` on the label: both fight the positions and width this component sets. The editor warns about either.
+- The icon and label are measured at scale 1. While either is scaled (e.g. a punch), the group is off-centre until the scale returns.
+- Cost: one listener per instance on TMP's global text-changed event. In the benchmark, re-centring added a few µs per label per text change, with no allocations.
+
+---
+
 ## Utility Components
 
 ### AutoDestroy

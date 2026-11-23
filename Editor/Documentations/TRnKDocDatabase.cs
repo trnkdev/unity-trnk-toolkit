@@ -812,6 +812,45 @@ scroller.SetSpeedY(0f);    // stop vertical" },
                 },
                 new TRnKDocEntry
                 {
+                    Title = "FlexGridLayoutGroup",
+                    Namespace = "TRnK.Components",
+                    Summary = "Grid layout with a fixed cell size where each row is aligned on its own, so a short last row follows Child Alignment.",
+                    Description = "Inspector fields: Cell Size, Spacing, Max Per Row, Shrink To Fit. Shrink To Fit scales cells and spacing down when a full row is wider than the rect; the width must come from a parent layout, anchors or a fixed size, not a horizontal ContentSizeFitter. The preferred height follows the shrunk cells.",
+                    Code =
+@"// Pure inspector setup.
+var grid = GetComponent<FlexGridLayoutGroup>();
+Vector2 cell = grid.CellSize;
+int perRow  = grid.MaxPerRow;",
+                    Tags = new[] { "UI", "Layout", "Grid" },
+                    Category = DocCategory.Components
+                },
+                new TRnKDocEntry
+                {
+                    Title = "IconLabelCentering",
+                    Namespace = "TRnK.Components",
+                    Summary = "Centres an icon and the visible text of a TMP label together, re-centring whenever the text changes.",
+                    Description = "Icon and label must be direct children. The label's width is set to the rect minus Padding on both sides, the icon and Spacing; the icon's size is never changed. Long text is handled by the label's Ellipsis, Truncate, Auto Size or Wrap. Call Align() after showing, hiding or resizing the icon.",
+                    Code =
+@"var centering = GetComponent<IconLabelCentering>();
+icon.SetActive(false);
+centering.Align();",
+                    Tags = new[] { "UI", "Layout", "TMP" },
+                    Category = DocCategory.Components,
+                    Members = new[]
+                    {
+                        new DocMember
+                        {
+                            Kind = DocMemberKind.Method,
+                            Signature = "Align()",
+                            Summary = "Sizes the label and re-centres the pair. Text changes and resizes call it already.",
+                            Code =
+@"icon.SetActive(false);
+centering.Align();"
+                        },
+                    }
+                },
+                new TRnKDocEntry
+                {
                     Title = "AutoDestroy",
                     Namespace = "TRnK.Components",
                     Summary = "Destroys the GameObject after a configurable delay. Optionally fires a callback just before destruction.",
